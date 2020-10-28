@@ -1,0 +1,102 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../..}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{ADAMR2用ROSパッケージのインストール}
+
+ADAMR2用のROSパッケージをインストールします．
+パッケージをダウンロードする際にGit\footnote{https://git-scm.com/}が必要になります．
+\textsf{git}がインストールされていない場合は，追加でインストールしましょう．
+
+\begin{lstlisting}[language=sh, caption=Gitのインストール]
+sudo apt install git
+\end{lstlisting}
+
+\subsection{パッケージのクローン}
+
+GitHub\footnote{\url{https://github.com/fjnkt98/adamr2_ros1_packages/tree/melodic-devel}}からADAMR2用ROSパッケージをワークスペースにクローンします．
+\textsf{melodic-devel}ブランチをクローンしましょう．
+
+\begin{lstlisting}[language=sh, caption=パッケージのクローニング]
+cd ~/catkin_ws/src
+git clone -b melodic-devel https://github.com/fjnkt98/adamr2_ros1_packages.git
+\end{lstlisting}
+
+この時点ではまだビルド時依存パッケージである\textsf{YP-Spur}\footnote{https://openspur.org/}がインストールされていないので，パッケージのビルドはできません．\textsf{YP-Spur}のインストールは次の小節で行います．
+
+\subsection{依存パッケージのインストール}
+
+ADAMR2用ROSパッケージが依存しているパッケージを\textsf{rosdep}を用いてインストールします．
+コード\ref{code:rosdep_install}のコマンドを実行します．
+
+\begin{lstlisting}[language=sh, caption=依存パッケージのインストール, label=code:rosdep_install]
+rosdep install -i --from-path ~/catkin_ws/src/adamr2_ros1_packages/
+\end{lstlisting}
+
+このコマンドを実行することで，\textsf{rosdep}が依存関係を解決し，不足しているパッケージを\textsf{apt-get}コマンドを使用して自動的にインストールしてくれます．
+
+この作業を行うことで，\textsf{YP-Spur}のバイナリも一緒にインストールされます．
+また，\textsf{YP-Spur}のROSラッパーとして\textsf{ypspur\_ros}\footnote{\url{https://github.com/openspur/ypspur_ros}}パッケージも提供されていますが，ADAMR2では使用しません．
+
+\subsection{パッケージのビルド}
+
+依存関係を解決したので，パッケージをビルドできるようになりました．
+コード\ref{code:build}のコマンドを実行してパッケージをビルドします．
+
+\begin{lstlisting}[language=sh, caption=パッケージのビルド, label=code:build]
+cd ~/catkin_ws
+catkin build
+\end{lstlisting}
+
+ビルドが完了したら，ワークスペース内の\textsf{setup.bash}スクリプトを読み込みます．
+
+\begin{lstlisting}[language=sh, caption=セットアップスクリプトの読み込み]
+source ~/catkin_ws/devel/setup.bash
+\end{lstlisting}
+
+ついでに\textsf{\~{}/.bashrc}に書き込んで自動化してしまいましょう．
+
+\begin{lstlisting}[language=sh, caption=セットアップスクリプト読み込みの自動化]
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+\end{lstlisting}
+
+\subsection{環境設定}
+
+実際にロボットの実機を動かす際は，いくつかの環境設定を行う必要があります．
+
+まずは実行ファイルへの権限付与と実験用ディレクトリの生成を行います．
+\textsf{adamr2\_ros1\_packages/utility}ディレクトリ内にある\textsf{setup\_environment.sh}を実行します．
+
+\begin{lstlisting}[language=sh, caption=環境設定スクリプトの実行]
+cd ~/catkin_ws/src/adamr2_ros1_packages/utility
+bash setup_environment.sh
+\end{lstlisting}
+
+このシェルスクリプトは以下の処理を実行しています．
+
+\begin{itemize}
+  \item \textsf{ypspur-coordinator}を起動するスクリプト\textsf{ypspur\_launcher.sh}に実行権限を付与する
+  \item 実験で取得した\textsf{rosbag}ファイルや地図ファイルを保存しておくためのディレクトリをホームディレクトリに生成する
+\end{itemize}
+
+\noindent
+手動で行うのが面倒な作業を一括で行ってくれます．
+
+次に，USBデバイス名の固定を行います．
+T-Frogモータードライバ及びRPLiDARをPCに接続した状態で，\textsf{adamr2\_ros1\_packages/utility/udev}ディレクトリ内にある\textsf{set\_udev\_rules.sh}を実行します．
+
+\begin{lstlisting}[language=sh, caption=udev rulesの設定]
+cd ~/catkin_ws/src/adamr2_ros1_packages/utility
+bash set_udev_rules.sh
+\end{lstlisting}
+
+\noindent
+内部で\textsf{sudo}コマンドを実行しているため，このシェルスクリプトを実行する際はパスワードが要求されます．
+
+このシェルスクリプトを実行することによって，T-FrogモータードライバとRPLiDARのデバイスパスのシンボリックリンク\textsf{/dev/tfrog-driver}と\textsf{/dev/rplidar}が生成されます．
+
+ここまでの手順により，ROSの開発環境を整えることができました．
+ハードウェアのセットアップが完了しているなら，各パッケージにある\textsf{launch}ファイルを実行することでロボットを動かすことができます．
+
+\end{document}

@@ -1,0 +1,88 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../..}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{ROS Melodicのインストール}
+
+ROS Melodic Moreniaをインストールします．
+インストール手順はROS Wiki\footnote{\url{http://wiki.ros.org/melodic/Installation/Ubuntu}}に書かれている内容と同じですが，ビルドシステムに\textsf{catkin}ビルドツールを使用する点が異なります．
+
+\subsection{ROS本体のインストール}
+
+\textsf{Ctrl + Alt + T}を押してターミナルを開き，以下のコマンドを順番に実行します．
+
+\noindent
+【注意】PDFのコードブロックはコピーペーストした際に文章が崩れる可能性があります．コマンドのコピペはROS Wikiから行うことをお勧めします．
+
+\begin{lstlisting}[language=sh, caption=リポジトリの鍵の取得]
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" \
+  > /etc/apt/sources.list.d/ros-latest.list'
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh, caption=鍵の登録]
+sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key \
+  C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh, caption=パッケージリストのアップデート]
+sudo apt update
+\end{lstlisting}
+
+ここではデスクトップ版のROSをインストールします．
+
+\begin{lstlisting}[language=sh, caption=ROS本体のインストール]
+sudo apt install ros-melodic-desktop-full
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh, caption=ROSのセットアップスクリプトの読み込みを自動化する]
+echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh, caption=ユーティリティツールのインストール]
+sudo apt install \
+  python-rosdep \
+  python-rosinstall \
+  python-rosinstall-generator \
+  python-wstool \
+  build-essential
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh, caption=\textsf{rosdep}のインストール]
+sudo rosdep init
+rosdep update
+\end{lstlisting}
+
+\subsection{\textsf{catkin}ビルドツールのインストール}
+
+ROS1のモダンなビルドツールとして，Catkin Command Line Tools\footnote{\url{https://catkin-tools.readthedocs.io/en/latest/}}が開発されています．
+
+ROS WikiやROSの教本などでは\textsf{catkin\_make}コマンドを使ってワークスペースの設定やパッケージのビルドを行っていますが，\textsf{catkin}ビルドツールの方が使い勝手が良いです．
+これからROS1を始める際は\textsf{catkin\_make}コマンドでなくこちらを使うことをおすすめします．
+
+Catkin Command Line ToolsはデフォルトでROSに含まれていないので，追加でインストールする必要があります．
+
+\begin{lstlisting}[language=sh, caption=\textsf{catkin}ビルドツールのインストール]
+sudo apt install python-catkin-tools
+\end{lstlisting}
+
+\noindent
+【注意】\textsf{catkin}コマンドと\textsf{catkin\_make}コマンドの間には互換性がありません．
+そのため，\textsf{catkin\_make}コマンドで初期化したワークスペースを\textsf{catkin}コマンドでビルドすることはできません．
+もし既に\textsf{catkin\_make}コマンドでワークスペースを初期化している場合には，\textsf{catkin\_ws}ディレクトリにある\textsf{src/}以外のディレクトリを削除してから\textsf{catkin}コマンドでビルドし直してください．
+
+\subsection{ワークスペースの初期化}
+
+\textsf{catkin}コマンドを使って，ROSのワークスペースを初期化します．
+
+\begin{lstlisting}[language=sh, caption=ワークスペースの初期化]
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws
+catkin init
+\end{lstlisting}
+
+これでROSのインストール作業は終了です．
+次に，ADAMR2用のROSパッケージをインストールする作業を行います．
+
+\end{document}

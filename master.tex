@@ -1,0 +1,89 @@
+\documentclass[uplatex, a4paper]{jsreport}
+\usepackage[dvipdfmx]{graphicx}
+
+\usepackage[dvipdfmx]{hyperref} % ハイパーリンク
+\usepackage{pxjahyper}          % 日本語の文字化けを防ぐ
+\hypersetup{
+  colorlinks = true,
+  citecolor  = blue,
+  linkcolor  = blue,
+  urlcolor   = blue,
+}
+
+\usepackage{tabularx}   % 表
+\usepackage{layout}     % レイアウト
+
+\usepackage{amsmath, amssymb} % 数式と数学記号
+\usepackage{bm}               % ボールド体
+
+\usepackage{url}      % URLを書くため
+\usepackage{siunitx}  % SI単位を書くため
+
+\usepackage[dvipdfmx]{xcolor}   % 色指定
+\usepackage{listings} % コードブロック
+\lstset{
+  basicstyle = \small\ttfamily,
+  keywordstyle = \color[RGB]{33, 150, 243},
+  commentstyle = \color[RGB]{76,175,80},
+  backgroundcolor = \color[gray]{.95},
+  breaklines = true,
+  breakautoindent = true,
+  captionpos = t,
+  keepspaces = true,
+  columns = flexible,
+  showspaces = false,
+  showstringspaces = false,
+  showtabs = false,
+  aboveskip = 6pt,
+  belowskip = 6pt,
+  xleftmargin = 10pt,
+  xrightmargin = 10pt,
+  frame = tb,
+  framesep = 8pt,
+  framerule = 0.1pt,
+  frameround = tttt,
+  framexleftmargin = 10pt,
+  framexrightmargin = 10pt,
+  rulecolor = \color[gray]{.95},
+  tabsize = 2
+}
+
+\usepackage{subfiles} % ファイル分割
+
+% ---レイアウトパラメータ---
+\usepackage[left=25mm,right=25mm,top=20mm,bottom=20mm, includefoot]{geometry}
+
+\pagestyle{plain}   % ページ番号表示
+
+\renewcommand{\tablename}{Table}    % 表番号フォーマットをTableへ
+\renewcommand{\figurename}{Fig.}    % 図番号フォーマットをFig.へ
+
+\renewcommand{\lstlistingname}{Code}  % コードブロックのキャプションを"Code"に変更
+
+\renewcommand{\baselinestretch}{0.8}    % 行間の調整
+\renewcommand{\arraystretch}{1.2}       % 表の行の高さの調整
+
+\title{\Huge User's Documents for ADAMR2 Project} 
+\author{一関高専 専攻科 生産工学専攻 2年 藤野航汰}
+\date{\today}
+
+% ---ドキュメント開始---
+\begin{document}
+
+\maketitle  % タイトル生成
+
+\tableofcontents  % 目次生成
+\newpage
+
+\chapter{プロジェクト概要}
+\subfile{sections/1_introduction/background.tex}
+\subfile{sections/1_introduction/about_adamr2.tex}
+\subfile{sections/1_introduction/environment.tex}
+
+\chapter{セットアップガイド}
+\subfile{sections/2_setup_guide/electrical_connections.tex}
+\subfile{sections/2_setup_guide/install_ros.tex}
+\subfile{sections/2_setup_guide/install_adamr2.tex}
+
+\end{document}
+% --- ドキュメント終了 ---
