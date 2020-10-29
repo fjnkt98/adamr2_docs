@@ -5,12 +5,11 @@
   \section{電装の繋ぎ方}
 
   鉛蓄電池，スイッチ，モータードライバ等のロボットの電装を接続します．
+  電装の接続には主に絶縁被覆付圧着端子を使用します．
 
-  \section{部品一覧}
+  \subsection{部品一覧}
   
   電装の配線には以下の部品を使用します．
-
-  \subsection{電装部品一覧}
 
   \begin{table}[ht]
     \begin{center}
@@ -31,8 +30,6 @@
     \label{tab:list_of_electrical_components}
   \end{table}
 
-  \subsection{配線一覧}
-
   \begin{table}[ht]
     \begin{center}
       \begin{tabular}{|l|l|}
@@ -49,7 +46,26 @@
     \label{tab:list_of_wiring_components}
   \end{table}
 
-  \section{接続図}
+  \subsection{必要となる工具}
+
+  電装の取り付け作業には以下の工具が必要となります．
+
+  \begin{itemize}
+    \item 二面幅\SI{8}{mm}のレンチ
+    \item プラスドライバ(No.2以上)
+    \item 絶縁被覆付圧着端子用圧着工具 ホーザン P-743
+    \item ワイヤーストリッパ
+  \end{itemize}
+  
+  鉛蓄電池の端子は二面幅\SI{8}{mm}の六角ナット/ボルトが使用されているので，二面幅\SI{8}{mm}のレンチが必要になります．
+  電池を取り扱うので，絶縁されている工具が望ましいです．
+  また，レンチにラチェット機能が付いていると作業性が非常に向上します．
+  ラチェット機能付きのソケットレンチを使用することをお勧めします．
+
+  ADAMR2の電装で使用している圧着端子はほぼ全て絶縁被覆付なので，圧着工具も絶縁被覆付圧着端子用のものを使用する必要があります．
+  裸圧着端子用の工具を使用すると被覆が破れて不具合が発生する恐れがあるので，使用しないでください．
+
+  \subsection{接続図}
 
   電装部品の接続図を図\ref{fig:electrical_connection_diagram}に示します．
 
@@ -60,9 +76,9 @@
     \label{fig:electrical_connection_diagram}
   \end{figure}
 
-  \section{端子の接続方法の詳細}
+  \subsection{端子の接続方法の詳細}
 
-  \subsection{鉛蓄電池}
+  \subsubsection{鉛蓄電池}
   鉛蓄電池WP20-12IEはM5ねじの接続端子を持っているので，Y型圧着端子をねじ止めすることで接続することができます．  
   ねじの締結には8mm幅のレンチを使用できます．感電やショートに十分注意して作業してください．
 
@@ -73,7 +89,7 @@
     \label{fig:pb_battery}
   \end{figure}
 
-  \subsection{端子台}
+  \subsubsection{端子台}
   端子台ATK-30-6PはM5ねじの接続端子を持っているので，Y型圧着端子をねじ止めすることで接続できます．
 
   1つの端子に2つの圧着端子を接続することもできるので，圧着端子を両端につけたケーブルを使って2つの端子列をショートさせることができます．
@@ -86,7 +102,7 @@
     \label{fig:terminal}
   \end{figure}
 
-  \subsection{スイッチ}
+  \subsubsection{スイッチ}
   ADAMR2で使用しているスイッチは，いずれも187シリーズの差込型接続端子(ファストン端子)を持っています．
   接続には187シリーズの差込型端子(メス)を付けたケーブルを使用する必要があります．
 
@@ -100,7 +116,7 @@
     \label{fig:switch}
   \end{figure}
 
-  \subsection{T-Frog電源基板}
+  \subsubsection{T-Frog電源基板}
   T-Frog電源基板は，M3ねじ止めターミナルを持っています．
   接続には内径φ3.2の圧着端子を使用します．ADAMR2では丸形圧着端子を使用しています．
 
