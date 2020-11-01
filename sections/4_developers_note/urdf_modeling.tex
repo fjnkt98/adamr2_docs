@@ -59,15 +59,15 @@ TFパッケージを使う場合は可視化の手段が乏しいため，その
 以上の理由から，ここではURDFを記述してロボットのモデリングを行うことを強く推奨します．
 次の小節移行から，ADAMR2で実際に使用している\textsf{xacro}ファイルをもとに，URDFによるロボットの実践的なモデリングについて解説します．
 
-\subsection{対向2輪ロボットのURDFモデリング}
+\subsection{対向2輪ロボットの実機用URDFモデリング}
 
-早速\textsf{xacro}を用いて実際に対向2輪ロボットのURDFモデリングを行います．
+早速\textsf{xacro}を用いて実際に対向2輪ロボットの実機用URDFモデリングを行います．
 \textsf{xacro}を用いるため，URDFを直接記述することはありませんが，URDFの記述に関する基礎知識が必要になります．
 このセクションではURDF記述のチュートリアルについては取り扱わず，より実践的な内容を説明します．
 URDFモデリングのチュートリアルはWeb上に大量に存在します．
 この小節を読む前に，そちらを参照して基礎知識を身に付けてください．
 
-これからモデリングする対向2輪ロボットのリンク構造を図\ref{fig:mobile_robot_structure}に示します．
+これからモデリングする対向2輪ロボットの概要図を図\ref{fig:mobile_robot_structure}に示します．
 
 \begin{figure}[ht]
   \centering
@@ -75,5 +75,59 @@ URDFモデリングのチュートリアルはWeb上に大量に存在します�
   \caption{Link Structure of Diff-Drive Mobile Robot}
   \label{fig:mobile_robot_structure}
 \end{figure}
+
+\subsubsection{ディレクトリ構成}
+
+慣習的に，ロボットのURDFモデルは\textsf{\*\_description}(\* はロボットもしくはプロジェクトの名前)という名前のROSパッケージに配置します．
+ADAMR2プロジェクトならば「\textsf{adamr2\_description}」という名前になります．
+URDFモデリングを始める前に，パッケージを作っておきましょう．
+ビルド依存パッケージは無いので，パッケージ作成コマンドにオプションは必要ありません．
+
+\begin{lstlisting}[language=sh, caption=Create a Package to put the URDF Model in]
+catkin create pkg adamr2_description
+\end{lstlisting}
+
+\textsf{adamr2\_description}パッケージのディレクトリ構成はコード\ref{code:package_directory_structure}のようになります．
+
+\begin{lstlisting}[language=sh, caption=Directory Structure of adamr2\_description, label=code:package_directory_structure]
+adamr2_description/
+  ├ launch/
+  ├ meshes/
+  ├ rviz/
+  ├ urdf/
+  ├ package.xml
+  └ CMakeLists.txt
+\end{lstlisting}
+
+\textsf{launch/}ディレクトリには，URDFモデルの可視化を行うためのlaunchファイルを置きます．
+\textsf{meshes/}ディレクトリには，STL形式のロボットの3Dモデルを置きます．
+\textsf{rviz/}ディレクトリには，URDFモデル可視化時の\textsf{rviz}の設定ファイルを置きます．
+そして，\textsf{urdf/}ディレクトリにxacroファイルを格納していきます．
+
+\textsf{urdf/}ディレクトリの中身のディレクトリ構造はコードのようになります．
+
+\begin{lstlisting}[language=sh, caption=Directory Structure of \textsf{urdf/}, label=code:urdf_directory_structure]
+urdf/
+  ├ base/
+  │   └ base.xacro
+  ├ caster/
+  │   └ caster.xacro
+  ├ lidar/
+  │   └ lidar.xacro
+  ├ wheel/
+  │   ├ transmission.xacro
+  │   └ wheel.xacro
+  └ robot.xacro
+\end{lstlisting}
+
+\textsf{robot.xacro}がルートファイルです．
+ルートファイルから各コンポーネントのxacroファイルをインクルードし，ロボットのモデルを作成します．
+このファイルは最終的に\textsf{xacro}パッケージのノードを用いてURDFファイルに変換されます．
+
+ロボットの主要コンポーネントである\textsf{base}，\textsf{caster}，\textsf{lidar}，\textsf{wheel}のそれぞれに対してディレクトリを作り，その中に各々のxacroファイルを格納します．
+\textsf{caster}及び\textsf{wheel}はロボットに2つずつ存在しますが，xacroファイルを複数作成する必要はありません．
+共通のモジュールとしてxacroファイルを作成しておき，ルートファイルから読み込む際に名前や位置を付けることで各リンクを定義します．
+また，\textsf{wheel}には\textsf{transmission.xacro}というファイルがありますが，これは\textsf{ros\_control}を用いたコントローラを作る際に必要となるオプションを設定するためのファイルです．
+
 
 \end{document}
