@@ -149,4 +149,23 @@ root Link: base_footprint has 0 child(ren)
 ここまでの作業で，\textsf{xacro}ファイルの記述とURDFへの変換，及び構文チェックまでを行うことができました．
 URDFを\textsf{xacro}によって記述するときは，このようにURDFに変換してチェック作業を行いながら書くことになります．
 
+\subsection{URDFの可視化}
+
+\textsf{urdf_to_graphiz}コマンドを使えば，作成したURDFをグラフにして可視化することができます．
+コード\ref{code:visualize_urdf}に示すコマンドを実行することで，URDFのツリー構造を可視化したPDF画像ファイルを得ることができます．
+
+\begin{lstlisting}[language=sh, caption=Visualize URDF Tree, label=code:visualize_urdf]
+urdf_to_graphiz robot.urdf
+\end{lstlisting}
+
+出力結果は図のようになります．
+\textsf{base_footprint}しか定義していないので，グラフのノードは1つだけです．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=70truemm, clip]{images/urdf_graph_only_base_footprint.pdf}
+  \caption{URDF Tree(\textsf{base_footprint} Only)}
+  \label{fig:urdf_graph_only_base_footprint}
+\end{figure}
+
 \end{document}
