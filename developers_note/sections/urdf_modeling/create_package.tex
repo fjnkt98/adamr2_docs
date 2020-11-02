@@ -4,12 +4,13 @@
 \begin{document}
 
 \section{URDFモデリング用パッケージの作成}
+\label{sec:create_urdf_package}
 
 \subsection{ディレクトリ構成}
 
 ここから実際にURDFモデリングを行っていきます．
 まずは，URDFモデルを置くためのROSパッケージを作成します．
-慣習的に，ロボットのURDFモデルは\textsf{\*\_description}(\* はロボットもしくはプロジェクトの名前)という名前のROSパッケージに配置します．
+慣習的に，ロボットのURDFモデルは\textsf{*\_description}(*はロボットもしくはプロジェクトの名前)という名前のROSパッケージに配置します．
 ADAMR2プロジェクトならば「\textsf{adamr2\_description}」という名前になります．
 URDFモデリングを始める前に，パッケージを作っておきましょう．
 ビルド依存パッケージは無いので，パッケージ作成コマンドにオプションは必要ありません．
@@ -65,9 +66,9 @@ urdf/
 
 では早速，最初の\textsf{xacro}ファイルを作成してみましょう．
 ルートファイルである\textsf{robot.xacro}を記述してみます．
-\textsf{urdf/}ディレクトリの中に\textsf{robot.xacro}という名前の空のファイルを作成し，まずコード\ref{code:first_step}のように記述します．
+\textsf{urdf/}ディレクトリの中に\textsf{robot.xacro}という名前の空のファイルを作成し，まずコード\ref{code:robot_xacro_first_step}のように記述します．
 
-\begin{lstlisting}[language=XML, label=code:first_step, caption=\textsf{robot.xacro}]
+\begin{lstlisting}[language=XML, label=code:robot_xacro_first_step, caption=\textsf{robot.xacro}]
 <?xml version="1.0"?>
 <robot name="adamr2" xmlns:xacro="http://ros.org/wiki/xacro">
  
@@ -158,8 +159,8 @@ URDFを\textsf{xacro}によって記述するときは，このようにURDFに�
 urdf_to_graphiz robot.urdf
 \end{lstlisting}
 
-出力結果は図のようになります．
-\textsf{base\_footprint}しか定義していないので，グラフのノードは1つだけです．
+出力結果は図\ref{fig:urdf_graph_only_base_footprint}のようになります．
+現時点では\textsf{base\_footprint}リンクしか定義していないので，グラフのノードは1つだけです．
 
 \begin{figure}[ht]
   \centering
