@@ -11,13 +11,16 @@
 URDFモデリングのチュートリアルはWeb上に大量に存在します．
 この小節を読む前に，そちらを参照して基礎知識を身に付けてください．
 
-これからモデリングする対向2輪ロボットの概要図を図\ref{fig:mobile_robot_structure}に示します．
+これからモデリングする対向2輪ロボットのスケッチを図\ref{fig:mobile_robot_structure}に，リンクとジョイントのグラフを図に示します．
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=100truemm, clip]{images/mobile_robot_structure.pdf}
+  \includegraphics[width=100truemm, clip]{images/mobile_robot_structure.drawio.pdf}
   \caption{Link Structure of Diff-Drive Mobile Robot}
   \label{fig:mobile_robot_structure}
 \end{figure}
+
+トップレベルのリンクとして\textsf{base\_footprint}(空のリンク)があり，その下に\textsf{base\_link}があります．
+ホイール，センサ，キャスターのリンクはすべて\textsf{base\_link}の子リンクです．
 
 \end{document}
