@@ -1,0 +1,51 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../..}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{\textsf{base\_link}の作成と追加}
+
+節\ref{sec:create_urdf_package}までの作業で，ルートファイル\textsf{robot.xacro}の作成と\textsf{base\_footprint}リンクの定義を行いました．
+この節ではロボットのボディのリンクである\textsf{base\_link}の定義とルートファイルへの追加の作業を行います．
+
+\subsection{\textsf{base.xacro}の作成}
+
+まず，\textsf{base\_link}の要素や属性の定義を記述するファイルを作成します．
+\textsf{urdf/}ディレクトリ以下に\textsf{base/}ディレクトリを作成し，\textsf{base.xacro}という名前のファイルを作成します．
+そして，まずはコード\ref{code:base_link_first_step}のような内容を記述します．
+
+\begin{lstlisting}[language=XML, caption=\textsf{base.xacro}, label=code:base_link_first_step]
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="base" params="parent *joint_origin">
+    
+  </xacro:macro>
+</robot>
+\end{lstlisting}
+
+ルートファイルと同じく，\textsf{robot}タグをトップレベルに記述し，その中に他の全ての要素を記述していきます．
+ただし，コンポーネントファイルには\textsf{name}属性を書く必要はありません．名前空間だけ指定しておきましょう．
+
+\textsf{robot}タグの中には，\textsf{xacro:macro}タグが書かれています．
+これが\textsf{xacro}におけるマクロの定義であり，ルートファイルから呼び出されるものです．
+マクロの中に\textsf{link}や\textsf{joint}等のタグを記述しておけば，ルートファイルから呼び出されたときにそれらが展開される，という仕組みです．
+\textsf{xacro:macro}タグには\textsf{name}属性と\textsf{params}属性があります．
+\textsf{name}属性にはマクロの名前を指定します．
+\textsf{params}属性には，そのマクロが取る引数を指定することができます．
+コード\ref{code:base_link_first_step}では，引数として\textsf{parent}(親リンク名の指定)と\textsf{*joint\_origin}
+\footnote{アスタリスクが先頭に付くパラメータは「ブロックパラメータ」と呼ばれるパラメータで，任意の要素を展開することができます．}
+(座標原点の指定)の2つを取るように設定しています．
+
+\subsection{\textsf{link}タグの設定}
+
+
+
+\subsection{メッシュファイル(STL形式)の作成と割り当て}
+
+\subsection{\textsf{joint}の設定}
+
+\subsection{ファイルのインクルード}
+
+\subsection{\textsf{rviz}による可視化}
+
+\end{document}
