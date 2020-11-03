@@ -159,8 +159,22 @@ STLファイルは\ref{sec:base_link_create_mesh_file}で作成します．
 \subsection{メッシュファイル(STL形式)の作成と割り当て}
 \label{sec:base_link_create_mesh_file}
 
+\textsf{visual}要素の\textsf{mesh}に指定するSTLファイルを，3D-CADソフトであるSolidWorks2019を用いて作成します．
+SolidWorksにはパーツファイルをSTLにエクスポートする機能があるので，これを使います．
 
-\subsection{ファイルのインクルード}
+ROS REP:103\footnote{\url{https://www.ros.org/reps/rep-0103.html}}にあるように，ROSでは長さの単位を全てメートルで扱います．
+しかし，3D-CADで設計を行うときはミリメートル単位でモデリングするのが一般的です．
+従って，そのままSTLエクスポートすると，ROSから読み込んだときにモデルの大きさが1000倍になってしまいます．
+また，ROSではロボットの座標軸の向きは「X軸がロボットの前進方向，Z軸は鉛直上向き方向，Y軸は右手座標系となるような向き」と決められています．
+3D-CADのデフォルト座標軸がこのような向きになっていることは少ないため，STLファイルをエクスポートした後にBlender等の3D-CGファイルでスケールや向きを調整しなければならない場合が殆どです．
+
+しかし，SolidWorksにはSTLファイルをエクスポートする際に，単位系や座標系を指定することができる機能があります．
+そのため，適切な設定を行いさえすれば3D-CGソフトで後処理を行うことは必要ありません．
+
+図\ref{fig:base_link_cad_model}に，\textsf{base\_link}に対応付けるロボットのボディの3D-CADモデルを示します．
+これはアセンブリファイルをパーツファイルに変換したもので，筐体の他，アクチュエータ(ホイールは含まない)も内包しています．
+
+\subsection{ルートファイルからインクルードする}
 \label{sec:base_link_include}
 
 \subsection{\textsf{rviz}による可視化}
