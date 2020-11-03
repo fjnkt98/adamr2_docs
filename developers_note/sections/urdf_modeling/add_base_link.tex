@@ -104,20 +104,27 @@
 \subsection{\textsf{link}タグの設定}
 \label{sec:base_link_define_link_tag}
 
-\textsf{base\_link}の要素を記述していきます．
+ここから\textsf{link}タグを定義して，\textsf{base\_link}の要素を記述していきます．
 \textsf{link}タグは\textsf{inertial}，\textsf{visual}，\textsf{collision}の3つの要素を持ちます．
-以下の小小節でそれぞれのタグを設定していきます．
+\textsf{link}タグ及び各要素の詳細について知りたい方は，ROS Wikiのページ\footnote{\url{http://wiki.ros.org/urdf/XML/link}}を参照してください．
 
-\subsubsection{\textsf{visual}要素の定義}
+Gazeboシミュレーションを行う際は全ての要素について定義する必要がありますが，\textsf{rviz}で可視化するだけなら\textsf{visual}要素を設定するだけで事足ります．
+本章では実機用URDFの記述を目的としているため，ここではシミュレーション用の設定については説明しません．
+シミュレーション用の設定については後の章で解説します．
 
-まずは\textsf{visual}要素を記述しましょう．
 \textsf{visual}要素はモデルの見た目の要素を定義するタグです．
-コード\ref{code:link_element}のようにマクロタグ内に\textsf{link}タグを追記し，更にその中に\textsf{visual}要素を記述します．
+コード\ref{code:base_link_link_tag_element}のようにマクロタグ内に\textsf{link}タグを追記し，更にその中に\textsf{visual}要素を記述します．
 
-\begin{lstlisting}[language=XML, caption=\textsf{link} Element, label=code:link_element]
+\begin{lstlisting}[language=XML, caption=\textsf{link} Element, label=code:base_link_link_tag_element]
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="base" params="parent *joint_origin">
+    <joint name="base_link_joint" type="fixed">
+      <xacro:insert_block name="joint_origin"/>
+      <parent link="${parent}"/>
+      <child link="base_link"/>
+    </joint>
+
     <link name="base_link">
       <visual>
         <origin xyz="0.0 0.0 0.0"/>
@@ -133,8 +140,24 @@
 </robot>
 \end{lstlisting}
 
-\subsection{メッシュファイル(STL形式)の作成と割り当て}
+\textsf{visual}要素は更に\textsf{origin}，\textsf{geometry}，\textsf{material}要素を持ちます．
+\textsf{geometry}要素ではリンクの見た目を表す形状を定義します．
+長方形，球，円柱等のプリミティブな図形を設定できる他，STLファイルを読み込んで設定することができます．
+実際，コード\ref{code:base_link_link_tag_element}では\textsf{mesh}要素にSTLファイルを指定して形状を設定しています．
+STLファイルは\ref{sec:base_link_create_mesh_file}で作成します．
 
+\textsf{origin}要素では\textsf{geometry}要素で指定した図形の原点の座標を設定することができます．
+リンクの座標系から見た位置，即ちこのリンクが所属するジョイントの原点からみた位置で指定することになります．
+このドキュメントでは，基本的にリンクの位置は\textsf{joint}タグの位置を設定することで決定します．
+そのため，\textsf{link}タグの\textsf{origin}要素の値はほとんどの場合でゼロになります．
+
+\textsf{material}要素ではリンクの色を設定することができます．
+ただし，プリミティブ図形またはSTLファイルを使用する場合は，単色でしか設定できません．
+リンクの見た目の色を詳細に決定したい場合は，COLLADAファイル(拡張子は\textsf{*.dae})を用意する必要があります．
+ロボットの開発にとってあまり本質的ではないと考えたので，このドキュメントではCOLLADAファイルの作成については説明しません．
+
+\subsection{メッシュファイル(STL形式)の作成と割り当て}
+\label{sec:base_link_create_mesh_file}
 
 
 \subsection{ファイルのインクルード}
