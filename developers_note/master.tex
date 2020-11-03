@@ -47,6 +47,27 @@
   tabsize = 2
 }
 
+% URDF言語のシンタックスハイライトのキーワードを追加
+\lstdefinelanguage{XML}
+{
+  morestring=[s]{"}{"},
+  morestring=[s]{>}{<},
+  morecomment=[s]{<?}{?>},
+  morecomment=[s]{<!--}{-->},
+  stringstyle=\color{black},
+  identifierstyle=\color[RGB]{33, 150, 243},
+  keywordstyle=\color[RGB]{124, 77, 255},
+  morekeywords={
+    name,
+    type,
+    xyz,
+    rpy,
+    filename,
+    rgba,
+    params
+  }
+}
+
 \usepackage{subfiles} % ファイル分割
 
 % ---レイアウトパラメータ---
@@ -79,6 +100,7 @@
 \subfile{sections/urdf_modeling/why_urdf.tex}
 \subfile{sections/urdf_modeling/target_overview.tex}
 \subfile{sections/urdf_modeling/create_package.tex}
+\subfile{sections/urdf_modeling/add_base_link.tex}
 
 \bibliography{bibliography}
 \bibliographystyle{junsrt}
