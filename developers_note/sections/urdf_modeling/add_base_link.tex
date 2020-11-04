@@ -18,9 +18,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="base" params="parent *joint_origin">
-    
-  </xacro:macro>
-</robot>
+  ．．
 \end{lstlisting}
 
 ルートファイルと同じく，\textsf{robot}タグをトップレベルに記述し，その中に他の全ての要素を記述していきます．
@@ -238,6 +236,117 @@ STLを選択すると，「ｵﾌﾟｼｮﾝ」ボタンが表示されるの�
 \subsection{ルートファイルからインクルードする}
 \label{sec:base_link_include}
 
+ここまでの作業で\textsf{base\_link}の定義を完了することができたので，これをルートファイルから読み込んでロボットモデルに組み込みましょう．
+コード\ref{code:robot_xacro_add_base_link}に，\textsf{robot.xacro}にいくつかの文を追記します．
+
+\begin{lstlisting}[language=XML, label=code:robot_xacro_add_base_link, caption=Add \textsf{base\_link} to Robot Model]
+<?xml version="1.0"?>
+<robot name="adamr2" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find adamr2_description)/urdf/base/base.xacro"/>
+
+  <link name="base_footprint"/>
+
+  <xacro:base parent="base_footprint">
+    <origin xyz="0.0 0.0 0.262"/>
+  </xacro:base>
+
+</robot>
+\end{lstlisting}
+
+3行目に追記したコマンド\textsf{xacro:include}で，\textsf{base.xacro}ファイルを読み込んでいます．
+これにより，\textsf{base.xacro}で定義したマクロを使用できるようになります．
+そして，7行目から9行目で\textsf{xacro:base}マクロを使って\textsf{base\_link}と\textsf{base\_link\_joint}を定義しています．
+マクロタグ内で\textsf{origin}要素の記述を行っているのは，マクロがブロックパラメータとして\textsf{origin}要素を引数としているからです．
+こうすることにより，設計変更が発生してリンクの場所を変更しなければならなくなっても，\textsf{robot.xacro}を編集するだけで対応することが出来るようになります．
+
+\textsf{robot.xacro}を編集したら，念の為URDFチェックをしておきましょう．
+URDFの構文チェックの手順は，\ref{sec:urdf_check}の手順を参照してください．
+URDFを正しく記述できていれば，コード\ref{code:base_link_check_urdf_result}のように表示されるはずです．
+
+\begin{lstlisting}[language=sh, label=code:base_link_check_urdf_result, caption=Result of Check URDF]
+robot name is: adamr2
+---------- Successfully Parsed XML ---------------
+root Link: base_footprint has 1 child(ren)
+    child(1):  base_link  
+\end{lstlisting}
+
 \subsection{\textsf{rviz}による可視化}
+
+せっかくリンクを追加したので，\textsf{rviz}で可視化してみましょう．
+\textsf{launch/}ディレクトリを作成し，その中に\textsf{rviz}を起動するためのlaunchファイル\textsf{display.launch}を作成し，コード\ref{code:base_link_display_launch}の内容を記述します．
+
+\begin{lstlisting}[language=XML, label=code:base_link_display_launch, caption=\textsf{display.launch}]
+<launch>
+  <arg name="model" default="$(find adamr2_description)/urdf/robot.xacro"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="rviz" pkg="rviz" type="rviz"/>
+</launch>
+\end{lstlisting}
+
+\textsf{param}タグで\textsf{robot.xacro}を展開し，\textsf{robot\_description}という名前のパラメータに登録します．
+ROSではロボットのリンクやジョイントの状態を，\textsf{robot\_description}という名前のパラメータで一元管理しています．
+URDFの情報をこのパラメータに登録することで，URDFで定義したロボットのモデルをROSに伝えます．
+
+また，このlaunchファイルでは2つのノードを起動しています．
+1つは\textsf{robot\_state\_publisher}ノードです．このノードは\textsf{robot\_description}パラメータの情報を解釈してTFを投げてくれるノードです．
+2つ目は\textsf{rviz}です．
+
+launchファイルを作成したら，一旦パッケージをビルドしておきましょう．
+パッケージをビルドすることで，そのパッケージにlaunchファイルが存在することをシステムに登録できます．
+\footnote{ROS1では，ROS2のようにlaunchファイルを変更する度にビルドする必要はありません．ここでの作業はlaunchファイルの存在をシステムに知らせるためのものです．}
+ROSのワークスペースに移動して，コード\ref{code:adamr2_description_build_package}のコマンドを実行します．
+
+\begin{lstlisting}[language=sh, label=code:adamr2_description_build_package, caption=Build \textsf{adamr2\_description} Package]
+cd ~/catkin_ws/src
+catkin build adamr2_description
+source ~/catkin_ws/devel/setup.bash 
+\end{lstlisting}
+
+パッケージをビルドしたら，launchファイルを実行してみましょう．
+
+\begin{lstlisting}[language=sh, caption=Launch \textsf{display.launch}]
+roslaunch adamr2_description display.launch
+\end{lstlisting}
+
+launchファイルを実行すると，\textsf{rviz}が起動し，図\ref{fig:plain_rviz}のような画面が表示されます．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm]{images/plain_rviz.png}
+  \label{fig:plain_rviz}
+  \caption{Screenshot of \textsf{rviz} Right After It Started}
+\end{figure}
+
+起動した直後はオプションを何も設定していないので，何も表示されません．
+ロボットのモデルを表示するためには，左下の「Add」ボタンを押し，「\textsf{RobotModel}」を追加します(図\ref{fig:rviz_add_robot_model})．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm]{images/rviz_add_robot_model.png}
+  \label{fig:rviz_add_robot_model}
+  \caption{Add \textsf{RobotModel} to \textsf{rviz}}
+\end{figure}
+
+\noindent
+そして，\textsf{Fixed Frame}の値を\textsf{base\_footprint}に変更します．
+デフォルトの値は\textsf{map}というフレームが割り当てられていますが，ロボットのモデルには\textsf{map}というフレームは存在しません．
+ロボットモデルのルートとなるフレーム名は\textsf{base\_footprint}に設定しているので，プルダウンメニューを開き，\textsf{base\_footprint}を選択します．
+
+ここまで設定すれば，図\ref{fig:rviz_robot_model_subccessfully_viewed}のようにロボットのモデルが正しく表示されるはずです．
+\textsf{base\_link}がホイールの大きさを考慮した高さに置かれていることが分かると思います．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm]{images/rviz_robot_model_successfully_viewed.png}
+  \label{fig:rviz_robot_model_subccessfully_viewed}
+  \caption{\textsf{base\_link} is Correctly Displayed}
+\end{figure}
+
+本節では，コンポーネントとしてのxacroファイルの記述の仕方，SolidWorksを利用したSTLファイルの作成方法，ルートファイルからのインクルードの仕方，及び\textsf{rviz}を使ったURDFモデルの可視化について説明しました．
+センサやホイール等のコンポーネントも，本節で説明した手順の通りに追加することができます．
+次節以降の作業を行う際にづまづいたときは，本節に戻って手順を確認してください．
 
 \end{document}
