@@ -173,6 +173,67 @@ ROS REP:103\footnote{\url{https://www.ros.org/reps/rep-0103.html}}にあるよ�
 
 図\ref{fig:base_link_cad_model}に，\textsf{base\_link}に対応付けるロボットのボディの3D-CADモデルを示します．
 これはアセンブリファイルをパーツファイルに変換したもので，筐体の他，アクチュエータ(ホイールは含まない)も内包しています．
+3D-CADの座標軸が図の左下に表示されていますが，X軸はロボットの前方を向いているものの，Z軸が鉛直上向きになっていません．
+また，ミリメートル単位で設計を行ったため，単位変換を行う必要があります．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm, clip]{images/base_link_cad_model.png}
+  \label{fig:base_link_cad_model}
+  \caption{3D Model of \textsf{base\_link}}
+\end{figure}
+
+STLファイルをエクスポートする前の準備として，まず座標系を定義しましょう．
+今回のモデルでは，原点はアルミフレームが描く直方体の中心に位置しているので，STLファイルの原点にしたい場所に新たに点を打つ必要はありません．
+まずは座標系のもとになる軸を定義します．フィーチャー$\rightarrow$参照ジオメトリ$\rightarrow$軸を選択します．
+そして，図\ref{fig:base_link_create_axes}のように2つの平面を選択して，X軸，Y軸，Z軸の3本を新たに定義します．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm, clip]{images/base_link_create_axes.png}
+  \label{fig:base_link_create_axes}
+  \caption{Add Axes for STL Export}
+\end{figure}
+
+\noindent
+軸を追加したら，座標系を定義します．
+先ほど追加した軸を使って，ROSが推奨する座標軸の向きになるように設定します．
+少し見づらいですが，図\ref{fig:base_link_create_coordinate_system}ではX軸に軸1を，Z軸に軸3を対応付けた結果，望ましい座標軸の向きになっていることがわかります．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm, clip]{images/base_link_create_coordinate_system.png}
+  \label{fig:base_link_create_coordinate_system}
+  \caption{Add Coordinate System for STL Export}
+\end{figure}
+
+座標系の定義ができたので，STLファイルをエクスポートしましょう．
+指定保存を開き，ファイルの種類(拡張子)に「STL」を選択します．
+STLを選択すると，「ｵﾌﾟｼｮﾝ」ボタンが表示されるので，それをクリックします．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm, clip]{images/base_link_save_as_stl.png}
+  \label{fig:base_link_save_as_stl}
+  \caption{Save as STL File}
+\end{figure}
+
+\noindent
+オプションを開くと，図\ref{fig:base_link_stl_export_options}のような画面が表示されます．
+ここで単位と出力座標系を設定します(\ref{fig:base_link_stl_export_options}で赤線を引いたところ)．
+単位をメートルに設定し，出力座標系に先ほど作成した座標系(ここでは「座標系1」という名前)を設定します．
+お好みで解像度の設定もできます．「粗表示」を選ぶとモデルが粗くなってしまいますが，ファイルの容量を減らすことができます．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=100truemm, clip]{images/base_link_stl_export_options.png}
+  \label{fig:base_link_stl_export_options}
+  \caption{STL Export Options}
+\end{figure}
+
+この設定で「OK」をクリックし，「保存」を選択することで，ROSでそのまま使用できるSTLファイルを作成することができます．
+このSTLファイルを，\textsf{adamr2\_description/meshes/}ディレクトリに\textsf{base\_link.STL}という名前で保存します．
+コード\ref{code:base_link_link_tag_element}が正しく記述されていれば，STLファイルを読み込むことができるようになります．
 
 \subsection{ルートファイルからインクルードする}
 \label{sec:base_link_include}
