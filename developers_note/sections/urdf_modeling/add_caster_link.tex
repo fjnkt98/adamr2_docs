@@ -67,10 +67,10 @@
 そのため，接頭辞を引数にとって区別することで，1つのxacroファイルで2つの部品を定義できるようにしています．
 
 \textsf{base\_link}と\textsf{\$\{prefix\}\_caster\_support\_link}は\textsf{\$\{prefix\}\_caster\_support\_joint}によって接続されます．
-ジョイントタイプは「Fixed」です．
+ジョイントタイプは\textsf{fixed}です．
 本来ならばこのジョイントは，Z軸を回転中心とする連続回転ジョイントのタイプにする必要があります．
 しかし，実機用のURDFファイルでこのような受動回転するコンポーネントのジョイントタイプを連続回転にすると，リンクの位置関係を取得できないためにTFのエラーが発生します．
-そのため，実機用URDFではジョイントのタイプを「Fixed」にしています
+そのため，実機用URDFではジョイントのタイプを\textsf{fixed}にしています
 ．
 \textsf{\$\{prefix\}\_caster\_support\_link}と\textsf{\$\{prefix\}\_caster\_wheel\_link}を繋ぐジョイント\textsf{\$\{prefix\}\_caster\_wheel\_joint}も同様に固定タイプのジョイントとしています．
 
@@ -80,6 +80,16 @@
 \subsection{STLファイルの作成と割り当て}
 
 \ref{sec:base_link_create_mesh_file}を参考に，3D-CADソフトからSTLファイルをエクスポートして\textsf{meshes/}ディレクトリに配置してください．
+車輪パーツとサポートパーツは別ファイルとして書き出します．
+出力座標系は図\ref{fig:caster_link_coordinate}を参照してください．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=40truemm]{images/caster_link_coordinate.drawio.png}
+  \label{fig:caster_link_coordinate}
+  \caption{Coordinate System of Caster Parts}
+\end{figure}
+
 
 \subsection{ルートファイルからインクルードする}
 
