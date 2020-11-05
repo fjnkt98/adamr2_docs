@@ -123,5 +123,56 @@ STLファイルの出力座標系は図\ref{fig:lidar_link_coordinate}のよう�
 センサを取り付けたので，\textsf{rviz}で可視化して，正しい位置に取り付けられているかどうか確認します．
 \ref{sec:base_link_visualize_by_rviz}を参考に，URDFモデルを\textsf{rviz}で可視化します．
 
+とはいえ，可視化の度に\textsf{RobotModel}を追加して，基準フレームを\textsf{base\_footprint}にして...という作業を繰り返すのは面倒です．
+そこで，\textsf{rviz}の設定ファイルを保存しておいて，可視化の度に読み込むようにしてみましょう．
+\textsf{rviz}を起動し，ロボットモデルの可視化が正しくできている状態(\textsf{RobotModel}を追加して\textsf{base\_footprint}を基準フレームに設定している状態)にします．
+図\ref{fig:rviz_save_config_as}のように，画面左上のツールバーから「File」->「Save Config As」を選択します．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=40truemm]{images/rviz_save_config_as.png}
+  \label{fig:rviz_save_config_as}
+  \caption{Save \textsf{rviz} Config File}
+\end{figure}
+
+\noindent
+\textsf{adamr2\_description}パッケージの中に設定ファイルを保存します．
+保存場所はどこでもいいですが，わかりやすいように\textsf{rviz/}という名前のディレクトリを作り，\textsf{display.rviz}という名前で保存しましょう．
+
+この設定ファイルを\textsf{rviz}起動時に読み込ませることで，保存しておいた設定を復元することができます．
+\textsf{rviz}に設定ファイルを渡して起動するには，launchファイルを少し編集する必要があります．
+コード\ref{code:rviz_load_config_at_startup}のように\textsf{display.launch}ファイルを編集します．
+
+\begin{lstlisting}[language=XML, label=code:rviz_load_config_at_startup, caption=\textsf{rviz} Load Config File at Startup]
+<launch>
+  <arg name="model" default="$(find adamr2_description)/urdf/robot.xacro"/>
+  <arg name="rvizconfig" default="$(find adamr2_description)/rviz/display.rviz"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)"/>
+</launch>
+\end{lstlisting}
+
+launchファイルの\textsf{arg}タグを追加して，新しい変数\textsf{rvizconfig}を定義しています．
+これは先程保存した\textsf{rviz}の設定ファイルへのパスです．
+そして，\textsf{rviz}を起動する\textsf{node}タグの\textsf{arg}属性に設定ファイルを読み込ませるオプションを追加しています．
+
+このlaunchファイルを実行することで，適切な設定がなされた状態でモデルが表示されます．
+このように\textsf{rviz}の設定ファイルを保存しておき，実行時に読み込ませることで，作業を効率よく進めることができます．
+テクニックとして覚えておいて損はないでしょう．
+
+\textsf{lidar\_link}を追加した段階でのロボットの見た目は図\ref{fig:lidar_link_visualization}のようになります．
+RPLiDARが正しい位置・向きに取り付けられていることがわかります．
+リンクの座標軸が表示されていますが，これは\textsf{TF}を表示させているからです．
+「Add」ボタンから追加することができます．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=50truemm]{images/lidar_link_visualization.png}
+  \label{fig:lidar_link_visualization}
+  \caption{Screenshot of \textsf{rviz}}
+\end{figure}
 
 \end{document}
