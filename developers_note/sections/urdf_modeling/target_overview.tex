@@ -11,7 +11,7 @@
 URDFモデリングのチュートリアルはWeb上に大量に存在します．
 この小節を読む前に，そちらを参照して基礎知識を身に付けてください．
 
-これからモデリングするロボットのスケッチを図\ref{fig:mobile_robot_structure}に，リンクとジョイントのグラフを図に示します．
+これからモデリングするロボットのスケッチを図\ref{fig:mobile_robot_structure}に，リンクとジョイントのグラフを図\ref{fig:adamr2_urdf_tree}に示します．
 
 \begin{figure}[ht]
   \centering
@@ -27,7 +27,7 @@ URDFモデリングのチュートリアルはWeb上に大量に存在します�
   \label{fig:adamr2_urdf_tree}
 \end{figure}
 
-トップレベルのリンクとして\textsf{base\_footprint}(空のリンク)があり，その下に\textsf{base\_link}があります．
+トップレベルのリンクとして\textsf{base\_footprint}(空のリンク)があり，その下にロボットのボディである\textsf{base\_link}があります．
 ホイール，センサ，キャスターのリンクはすべて\textsf{base\_link}の子リンクです．
 
 \end{document}

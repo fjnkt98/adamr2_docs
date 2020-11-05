@@ -16,13 +16,13 @@ URDFについての説明をMathWorksのWebサイトから引用します．\cit
 
 URDFでは，ロボットのモデルをリンク(Link)とジョイント(Joint)からなるツリー構造で表現します．
 ボディやホイール，センサ等，駆動しないブロックをリンクとして扱い，リンクとリンクとの接続(固定，回転，直動，etc)をジョイントとして扱います．
-URDFによってモデリングされたロボットは，最終的に図\ref{fig:urdf_tree}\cite{urdf_xml_model}のような構造になります．
+URDFによってモデリングされたロボットは，最終的に図\ref{fig:urdf_tree}のような構造になります．
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=70truemm, clip]{images/urdf_tree.png}
   \label{fig:urdf_tree}
-  \caption{Tree Structure of URDF}
+  \caption{Tree Structure of URDF\cite{urdf_xml_model}}
 \end{figure}
 
 URDFを記述することで，ロボットを構成する各リンクの位置関係やジョイントの属性を表すことができます．
