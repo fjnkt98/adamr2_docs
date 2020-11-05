@@ -35,6 +35,18 @@ RPLiDAR A2は少々特殊な座標系を持っており，その向きは図\ref
 図を見るとわかるのですが，ROS REP:103で推奨されている座標系と一致していません(Z軸周りに180度回転させた向きになっている)．
 そのため，モデルの見た目とセンサデータの座標変換とを両立させるために，ジョイントの向きを図\ref{fig:rplidar_a2_coordinate_system}の通りにし，モデルの見た目を180度回転させる，という処理が必要になります．
 
+\subsection{STLファイルの作成}
+
+STLファイルの出力座標系は図\ref{fig:lidar_link_coordinate}のようにします．
+座標系の原点はセンサ底面から\SI{30.8}{mm}の高さに位置しています．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=40truemm]{images/lidar_link_coordinate.png}
+  \label{fig:lidar_link_coordinate}
+  \caption{Output Coordinate System of RPLiDAR Model}
+\end{figure}
+
 \subsection{\textsf{lidar.xacro}の記述}
 
 以上を踏まえて，\textsf{lidar.xacro}を記述します．
@@ -43,7 +55,7 @@ RPLiDAR A2は少々特殊な座標系を持っており，その向きは図\ref
 \begin{lstlisting}[language=XML, label=code:lidar_xacro, caption=\textsf{lidar.xacro}]
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="lidar" params="parent *joint_origin">
+  <xacro:macro name="lidar" params="parent visual_yaw_orientation *joint_origin">
     <joint name="lidar_joint" type="fixed">
       <xacro:insert_block name="joint_origin"/>
       <parent link="${parent}"/>
@@ -52,6 +64,7 @@ RPLiDAR A2は少々特殊な座標系を持っており，その向きは図\ref
 
     <link name="lidar_link">
       <visual>
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 ${visual_yaw_orientation}"/>
         <geometry>
           <mesh filename="package://adamr2_description/meshes/lidar_link.STL"/>
         </geometry>
@@ -63,5 +76,52 @@ RPLiDAR A2は少々特殊な座標系を持っており，その向きは図\ref
   </xacro:macro>
 </robot>
 \end{lstlisting}
+
+\textsf{lidar}マクロは引数として親リンクの名前，モデルの見た目の向き，そしてジョイントの原点座標のブロックを取ります．
+ジョイント原点座標とともにモデルの向きを取ることによって，RPLiDAR特有の座標系に起因する問題を解決しています．
+
+\subsection{ルートファイルからインクルードする}
+
+\textsf{lidar\_link}をロボットモデルに取り込みましょう．
+コード\ref{code:robot_xacro_add_lidar_link}のように\textsf{robot.xacro}を編集します．
+\textsf{lidar}マクロの引数\textsf{visual\_yaw\_orientation}に，\textsf{radians}マクロを使って弧度法で角度を渡しています．
+
+\begin{lstlisting}[language=XML, label=code:robot_xacro_add_lidar_link, caption=Add \textsf{lidar\_link} to Robot Model]
+<?xml version="1.0"?>
+<robot name="adamr2" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find adamr2_description)/urdf/base/base.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/caster/caster.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/lidar/lidar.xacro"/>
+
+  <!-- base_footprint -->
+  <link name="base_footprint"/>
+
+  <!-- base_link -->
+  <xacro:base parent="base_footprint">
+    <origin xyz="0.0 0.0 0.262"/>
+  </xacro:base>
+
+  <!-- front caster -->
+  <xacro:caster prefix="back" parent="base_link">
+    <origin xyz="-0.275 0.0 -0.1498"/>
+  </xacro:caster>
+
+  <!-- back caster -->
+  <xacro:caster prefix="front" parent="base_link">
+    <origin xyz="0.275 0.0 -0.1498" rpy="0 0 ${radians(180)}"/>
+  </xacro:caster>
+
+  <!-- lidar -->
+  <xacro:lidar parent="base_link" visual_yaw_orientation="${radians(180)}">
+    <origin xyz="0.275 0 0.177" rpy="0 0 ${radians(180)}"/>
+  </xacro:lidar>
+</robot>
+\end{lstlisting}
+
+\subsection{\textsf{rviz}による可視化}
+
+センサを取り付けたので，\textsf{rviz}で可視化して，正しい位置に取り付けられているかどうか確認します．
+\ref{sec:base_link_visualize_by_rviz}を参考に，URDFモデルを\textsf{rviz}で可視化します．
+
 
 \end{document}
