@@ -1,0 +1,80 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../..}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{\textsf{wheel\_link}の作成と追加}
+
+最後に\textsf{wheel\_link}とそのジョイントを追加していきます．
+\textsf{wheel\_link}を定義するために2つのファイルを準備します．
+\textsf{wheel.xacro}と\textsf{transmission.xacro}の2つです．
+
+\subsection{\textsf{wheel.xacro}の作成}
+
+まずは\textsf{wheel.xacro}を記述していきます．
+\textsf{urdf/}ディレクトリ以下に\textsf{wheel/}ディレクトリを作成し，\textsf{wheel.xacro}という名前のファイルを作成します．
+そして，コード\ref{code:wheel_xacro}のように記述します．
+
+\begin{lstlisting}[language=XML, label=code:wheel_xacro, caption=\textsf{wheel.xacro}]
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="wheel" params="prefix parent *joint_origin *joint_axis">
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <xacro:insert_block name="joint_origin"/>
+      <parent link="${parent}"/>
+      <child link="${prefix}_wheel_link"/>
+      <xacro:insert_block name="joint_axis"/>
+    </joint>
+    
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin rpy="0.0 0.0 0.0"/>
+        <geometry>
+          <mesh filename="package://adamr2_description/meshes/wheel_link.STL"/>
+        </geometry>
+        <material name="black">
+          <color rgba="0.0 0.0 0.0 1.0"/>
+        </material>
+      </visual>
+    </link>
+  </xacro:macro>
+</robot>
+\end{lstlisting}
+
+\textsf{wheel.xacro}の内容は他のリンクとほとんど変わり映えしません．
+ジョイントとリンクを定義しているだけです．
+ホイールを繋ぐジョイントはタイプを\textsf{continuous}にします．
+
+\subsection{\textsf{transmission.xacro}の作成}
+
+ホイールジョイントに対する\textsf{ros\_control}の設定を行うマクロは\textsf{transmision.xacro}で定義します．
+\textsf{wheel.xacro}と同じディレクトリに\textsf{transmission.xacro}という名前のファイルを作成し，コード\ref{code:transmission_xacro}のような内容を記述します．
+
+\begin{lstlisting}[language=XML, label=code:transmission_xacro, caption=\textsf{transmission.xacro}]
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="wheel_trans" params="prefix">
+    <transmission name="${prefix}_wheel_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${prefix}_wheel_joint">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+
+      <actuator name="${prefix}_wheel_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+</robot>
+\end{lstlisting}
+
+このマクロではホイールのジョイントに対して\textsf{transmission}要素を追加しています．
+\textsf{transmission}要素には\textsf{type}，\textsf{joint}，\textsf{actuator}の3つの要素を持っています．
+このURDFは\textsf{ros\_control}のコントローラの1つである\textsf{diff\_drive\_controller}から利用されることを想定しているので，
+\textsf{type}は\textsf{transmission\_interface/SimpleTransmission}を，
+\textsf{joint}の\textsf{hardwareInterface}要素には\textsf{hardware\_interface/VelocityJointInterface}を設定しています．
+\textsf{actuator}要素の\textsf{mechanicalReduction}には，ロボットのアクチュエータの減速比を設定します．
+ADAMR2ではギヤードBLDCモータを使用していますが，ギア比の計算はYP-Spurが行ってくれるため，ここで設定する必要はありません．
+ギヤ比は1に設定しておきましょう．
+
+\end{document}
