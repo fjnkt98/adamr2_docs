@@ -68,4 +68,35 @@
   \end{center}
 \end{table}
 
+\subsection{\textsf{teleop\_twist\_joy}パッケージを使用する}
+
+\textsf{sensor\_msgs/Joy}メッセージを\textsf{geometry\_msgs/Twist}
+\footnote{\url{http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/Twist.html}}
+メッセージに変換するためのパッケージとして，\textsf{teleop\_twist\_joy}
+\footnote{\url{http://wiki.ros.org/teleop_twist_joy}}
+パッケージがあります．
+\textsf{Twist}型メッセージで速度指令を受け取るタイプのロボットをゲームパッドから動かす際によく使われているパッケージで，ADAMR2でもこのパッケージを使用しています．
+
+このパッケージを使用するためには，適切なコンフィグファイルを記述し，ゲームパッドの軸やボタンに合わせた設定を行う必要があります．
+F310/F710ゲームパッドのための設定ファイルの例をコード\ref{code:f310_config_yml}に示します．
+
+\begin{lstlisting}[language=yaml, label=code:f310_config_yml, caption=Example of Configuration for F310]
+axis_linear: 1
+scale_linear: 0.3
+scale_linear_turbo: 0.5
+
+axis_angular: 0
+scale_angular: 0.94
+scale_angular_turbo: 1.57
+
+enable_button: 1
+enable_turbo_button: 2
+\end{lstlisting}
+
+この設定例では，左アナログスティックの縦軸が直進速度，横軸が旋回速度に対応するようになっています．
+また，押しているボタンによって速度のスケールが変わるようになっており，Aボタンは通常のスケール，Bボタンでターボスケールになるようになっています．
+スケールの具体的な値は\textsf{scale\_linear}と\textsf{scale\_angular}で指定しています．
+
+より詳細なパラメータの設定方法は，\textsf{teleop\_twist\_joy}のROS Wikiのページを参照してください．
+
 \end{document}
