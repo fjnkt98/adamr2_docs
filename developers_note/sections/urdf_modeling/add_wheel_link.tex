@@ -77,4 +77,67 @@
 ADAMR2ではギヤードBLDCモータを使用していますが，ギア比の計算はYP-Spurが行ってくれるため，ここで設定する必要はありません．
 ギヤ比は1に設定しておきましょう．
 
+\subsection{ルートファイルからインクルードする}
+
+ホイールをロボットに組み込みます．\textsf{robot.xacro}を更に編集し，コード\ref{code:robot_xacro_add_wheel_link}のようにします．
+\textsf{xacro:include}タグを使って\textsf{wheel.xacro}と\textsf{transmission.xacro}を読み込むことを忘れないようにしてください．
+
+\begin{lstlisting}[language=XML, label=code:robot_xacro_add_wheel_link, caption=Add \textsf{wheel\_link} to Robot Model]
+<?xml version="1.0"?>
+<robot name="adamr2" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find adamr2_description)/urdf/base/base.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/caster/caster.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/lidar/lidar.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/wheel/wheel.xacro"/>
+  <xacro:include filename="$(find adamr2_description)/urdf/wheel/transmission.xacro"/>
+
+  <!-- base_footprint -->
+  <link name="base_footprint"/>
+
+  <!-- base_link -->
+  <xacro:base parent="base_footprint">
+    <origin xyz="0.0 0.0 0.262"/>
+  </xacro:base>
+
+  <!-- front caster -->
+  <xacro:caster prefix="front" parent="base_link">
+    <origin xyz="0.275 0.0 -0.1498" rpy="0 0 ${radians(180)}"/>
+  </xacro:caster>
+
+  <!-- back caster-->
+  <xacro:caster prefix="back" parent="base_link">
+    <origin xyz="-0.275 0.0 -0.1498"/>
+  </xacro:caster>
+
+  <!-- lidar -->
+  <xacro:lidar parent="base_link" visual_yaw_orientation="${radians(180)}">
+    <origin xyz="0.275 0 0.177" rpy="0 0 ${radians(270)}"/>
+  </xacro:lidar>
+
+  <!-- left wheel -->
+  <xacro:wheel prefix="left" parent="base_link">
+    <origin xyz="0.0 0.1915 -0.1845"/>
+    <axis xyz="0 1 0"/>
+  </xacro:wheel>
+  <xacro:wheel_trans prefix="left"/>
+
+  <!-- right wheel -->
+  <xacro:wheel prefix="right" parent="base_link">
+    <origin xyz="0.0 -0.1915 -0.1845"/>
+    <axis xyz="0 1 0"/>
+  </xacro:wheel>
+  <xacro:wheel_trans prefix="right"/>
+</robot>
+\end{lstlisting}
+
+\textsf{xacro:wheel}を呼び出してホイールを定義しています．
+ここで重要なのが，ホイールの回転軸は「ロボットが直進する方向を正とする」ようにしなければならないということです．
+コード\ref{code:robot_xacro_add_wheel_link}を見るとわかるように，左右どちらの車輪も，Y軸正方向を回転軸に設定しています．
+これは\textsf{diff\_drive\_controller}を使用する都合で発生するものです．
+\footnote{後述しますが，YP-Spurにおける車輪の軸はこのようになっていないため，結局ドライバノード側で回転速度を反転しなければなりません．にも関わらずこのようにしているのは，できるだけシミュレーション環境と互換性を持たせるためです．}
+
+\subsection{\textsf{rviz}による可視化}
+
+駆動パーツであるホイールを追加したので，\textsf{rviz}で可視化して，ついでにジョイントを動かしてみましょう．
+
 \end{document}
