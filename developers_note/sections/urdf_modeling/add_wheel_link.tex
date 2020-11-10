@@ -139,5 +139,38 @@ ADAMR2ではギヤードBLDCモータを使用していますが，ギア比の�
 \subsection{\textsf{rviz}による可視化}
 
 駆動パーツであるホイールを追加したので，\textsf{rviz}で可視化して，ついでにジョイントを動かしてみましょう．
+\textsf{joint\_state\_publisher\_gui}パッケージを使用すれば，スライダーを使ってジョイントを動かすことができます．
+\textsf{joint\_state\_publisher\_gui}パッケージはデフォルトで入っていない場合があるので，追加でインストールします．
+
+\begin{lstlisting}[language=sh, caption=Install \textsf{joint\_state\_publisher\_gui}]
+sudo apt update
+sudo apt install ros-melodic-joint-state-publisher-gui
+\end{lstlisting}
+
+\textsf{display.launch}に\textsf{joint\_state\_publisher}と\textsf{joint\_state\_publisher\_gui}を起動する文を追加します．
+
+\begin{lstlisting}[language=XML, label=code:display_launch_add_joint_state_publisher_gui, caption=\textsf{display.launch}]
+<launch>
+  <arg name="model" default="$(find adamr2_description)/urdf/robot.xacro"/>
+  <arg name="rvizconfig" default="$(find adamr2_description)/rviz/display.rviz" />
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true"/>
+</launch>
+\end{lstlisting}
+
+これを実行すると，図\ref{fig:rviz_joint_state_publisher_gui}のように，\textsf{rviz}にロボットモデルが表示され，また\textsf{joint\_state\_publisher\_gui}のウィンドウが現れます．
+\textsf{joint\_state\_publisher\_gui}のウィンドウのスライダーをマウスで動かすことによって，\textsf{rviz}上のロボットのホイールも動きます．
+ジョイントの角度を正の数値にすると，ロボットが前進する方向へホイールが動くことを確認してください．
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=120truemm]{images/rviz_joint_state_publisher_gui.png}
+  \label{fig:rviz_joint_state_publisher_gui}
+  \caption{\textsf{joint\_state\_publisher\_gui}}
+\end{figure}
 
 \end{document}
