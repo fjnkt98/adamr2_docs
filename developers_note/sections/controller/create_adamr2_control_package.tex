@@ -3,6 +3,65 @@
 
 \begin{document}
 
-\section{\textsf{adamr2\_control}パッケージの作成}
+\section{\textsf{adamr2\_control}パッケージの準備}
+
+\subsection{パッケージ作成}
+
+ロボットのコントローラに関連するファイルを格納しておくパッケージ\textsf{adamr2\_control}を作成します．
+このパッケージはビルド時依存パッケージを持たないので\footnote{実行時依存パッケージはあるので\textsf{package.xml}を編集しなければなりません．}，オプションは必要ありません．
+
+\begin{lstlisting}[language=sh, label=code:create_adamr2_control, caption= Create \textsf{adamr2\_control} Package]
+catkin create pkg adamr2_control
+\end{lstlisting}
+
+\textsf{adamr2\_control}パッケージのディレクトリ構成はコード\ref{code:create_adamr2_control}のようになります．
+
+\begin{lstlisting}[label=code:directory_structure_of_adamr2_control, caption=Directory Structure of \textsf{adamr2\_control}]
+adamr2_control/
+  ├ config/
+  ├ launch/
+  ├ scripts/
+  ├ package.xml
+  └ CMakeLists.txt
+\end{lstlisting}
+
+\textsf{config/}ディレクトリには，\textsf{diff\_drive\_controller}やYP-Spurに与えるパラメータを記述したファイルを配置します．
+\textsf{launch/}ディレクトリにはコントローラを起動するためのlaunchファイルを配置します．
+\textsf{scripts/}ディレクトリにはYP-Spurを実行するためのシェルスクリプトを格納します．
+
+\subsection{\textsf{package.xml}の編集}
+
+\textsf{package.xml}に依存パッケージを記述しておきます．
+\textsf{adamr2\_control}パッケージにはビルド時依存パッケージが無いので\textsf{CMakeLists.txt}は編集しなくてもよいのですが，他のパッケージのノードを呼び出したりする都合上，実行時依存パッケージは書いておく必要があります．
+\footnote{実際には実行時依存パッケージを書かなくても動きます．依存パッケージを書くのは，アプリケーション実行時にパッケージが不足してシステムが起動できない等の問題を極力回避するためです．}
+\textsf{package.xml}をコードのように編集します．
+\textsf{maintainer}タグや\textsf{license}タグは適切な情報を記述してください．
+
+\begin{lstlisting}[language=XML, label=code:adamr2_control_package_xml, caption=\textsf{package.xml} in \textsf{adamr2\_control}]
+<?xml version="1.0"?>
+<package format="2">
+  <name>adamr2_control</name>
+  <version>0.0.0</version>
+  <description>The adamr2_control package</description>
+
+  <maintainer email="hoge@hogehoge.com">hoge</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>joint_state_controller</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>adamr2_description</exec_depend>
+  <exec_depend>adamr2_driver</exec_depend>
+  <exec_depend>ypspur</exec_depend>
+</package>
+\end{lstlisting}
+
+これでパッケージの用意は完了です．
+次はlaunchファイルの作成を行います．
 
 \end{document}
