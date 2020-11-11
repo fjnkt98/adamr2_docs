@@ -1,0 +1,22 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{コントローラの構築に必要なもの}
+
+\textsf{diff\_drive\_controller}を使用してロボットの制御システムを作るには，以下のものが必要になります．
+
+\begin{enumerate}
+  \item ロボットのアクチュエータの情報を記述したURDFファイル
+  \item コントローラのコンフィグファイル
+  \item RobotHWクラスを継承して作ったハードウェアドライバノード(C++で記述)
+  \item コントローラやドライバノードを起動するlaunchファイル
+\end{enumerate}
+
+ロボットのURDFファイルは既に作成しました．
+これから作る必要があるのは，コンフィグファイルやlaunchファイル，そしてC++で記述したノードです．
+コンフィグファイルやlaunchファイルは\textsf{adamr2\_control}というパッケージを作り，その中に配置します．
+また，ドライバノードは\textsf{adamr2\_driver}というパッケージを作り，その中で開発します．
+
+\end{document}
