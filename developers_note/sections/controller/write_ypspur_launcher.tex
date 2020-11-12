@@ -1,0 +1,27 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{\textsf{ypspur\_launcher.sh}の作成}
+
+\textsf{ypspur\_launcher.sh}は，ROSのプログラムとモータードライバとの通信に必要なYP-Spurのソフトウェア\textsf{ypspur-coordinator}を起動するためのシェルスクリプトです．
+\textsf{adamr2\_control}ディレクトリ以下に\textsf{scripts/}ディレクトリを作成し，\textsf{ypspur\_launcher.sh}という名前のファイルを作成します．
+そして，コード\ref{code:ypspur_launcher_sh}のように記述します．
+
+\begin{lstlisting}[language=sh, label=code:ypspur_launcher_sh, caption=\textsf{ypspur\_launcher.sh}]
+#!/bin/bash
+
+# Execute yp-spur in background
+# Argument 1 is the path of parameter file
+# Argument 2 is the device file of the motor driver
+ypspur-coordinator -p $1 -d $2
+
+echo "Robot parameters [$1] loaded."
+\end{lstlisting}
+
+中身は単純で，コマンド引数としてYP-Spurのパラメータファイルとモータードライバのデバイスファイルを受け取り，\textsf{ypspur-coordinator}を実行するだけです．
+コメント文に書かれている通り，\textsf{\$1}はパラメータファイル，\textsf{\$2}はデバイスファイルを表します．
+このシェルスクリプトは\textsf{adamr2\_control.launch}ファイルから呼び出されます．
+
+\end{document}
