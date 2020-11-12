@@ -3,6 +3,87 @@
 
 \begin{document}
 
-\section{}
+\section{\textsf{diff\_drive\_controller}のためのコンフィグファイル}
+
+\textsf{diff\_drive\_controller}は，\textsf{geometry\_msgs/Twist}型トピックを受け取って各車輪に与える速度を計算します．
+そのためには車輪の半径やトレッド長さ等の情報が必要になります．
+それらの情報はROSパラメータとして与えることになるのですが，多くのパラメータを記述することになるので，1つのファイルにまとめて記述できた方が好ましいです．
+
+\textsf{adamr2\_control}パッケージ以下に\textsf{config/}ディレクトリを作成し，\textsf{controller.yml}という名前のファイルを作成します．
+そして，コード\ref{code:controller_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:controller_yml, caption=\textsf{controller.yml}]
+adamr2:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50
+
+  diff_drive_controller:
+    type: "diff_drive_controller/DiffDriveController"
+    left_wheel: 'left_wheel_joint'
+    right_wheel: 'right_wheel_joint'
+    publish_rate: 50
+
+    pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 10.0]
+    twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 10.0]
+
+    wheel_separation: 0.383
+    wheel_separation_multiplier: 1.0
+    wheel_radius: 0.0775
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
+
+    cmd_vel_timeout: 0.5
+
+    base_frame_id: base_footprint
+    odom_frame_id: odom
+
+    linear:
+      x:
+        has_velocity_limits: true
+        max_velocity: 0.9
+        min_velocity: -0.9
+        has_acceleration_limits: true
+        max_acceleration: 1.5
+        min_acceleration: -1.5
+      
+    angular:
+      z:
+        has_velocity_limits: true
+        max_velocity: 3.14
+        min_velocity: -3.14
+        has_acceleration_limits: true
+        max_acceleration: 6.28
+        min_acceleration: -6.28
+\end{lstlisting}
+
+このコンフィグファイルでは，\textsf{joint\_state\_controller}と\textsf{diff\_drive\_controller}の2つのノードに対するパラメータの設定を行っています．
+2つのノードは\textsf{adamr2}という名前空間の下に置かれます．
+\footnote{必ずしも\textsf{adamr2}のような名前空間の下に置く必要はありませんが，やはり名前空間を設定しておいた方が好ましいと考えたためこのようにしています．}
+
+\textsf{left\_wheel}および\textsf{right\_wheel}パラメータには，URDFで設定した車輪のジョイント名を指定します．
+\ref{sec:add_wheel_link}で名付けた通りの名前を指定してください．
+
+\textsf{wheel\_radius}で車輪の半径を，\textsf{wheel\_separation}でトレッド長さを指定しています．
+対象のロボットのハードウェア仕様に合わせて設定してください．
+ADAMR2ではトレッド長さ\SI{383}{mm}，ホイール半径\SI{77.5}{mm}なので，メートル単位にしてそれぞれ0.383，0.0775と設定しています．
+
+\textsf{wheel\_separation\_multiplier}，\textsf{left\_wheel\_radius\_multiplier}および\textsf{right\_wheel\_radius\_multiplier}は，車輪に関するパラメータの補正係数です．
+ホイール半径やトレッド長さの実際の値が，設計値よりもズレている場合に，これらの係数を使って調整を行います．
+これらの補正係数はROSのDynamic Reconfigure
+\footnote{\url{http://wiki.ros.org/dynamic_reconfigure}}
+という仕組みによってノード実行時に動的に数値を変更することができるため，実機を調整するのにうってつけです．
+\textsf{wheel\_separation}等の数値を直接変更するのではなく，補正係数を使ってオドメトリの調整を行うことをお勧めします．
+
+\textsf{base\_frame\_id}にはオドメトリの基準となるロボットのフレーム名を指定します．
+ROS REP:105では\textsf{base\_link}にするよう推奨していますが，ADAMR2では\textsf{base\_footprint}を使っているため，そのように設定します．
+\textsf{odom\_frame\_id}にはオドメトリ座標系を表すTFフレームの名前を指定します．
+ROS REP:105に従って，\textsf{odom}という名前を付けておきます．
+
+ファイルの末尾にあるのはロボットのソフトウェア的な速度・加速度制限です．
+直進速度と旋回速度に対してそれぞれ速度制限と加速度制限，更には躍度制限を付けることができます．
+ADAMR2ではハードウェアの仕様に合わせて，速度制限と加速度制限を適用しています．
+
+\textsf{diff\_drive\_controller}が取るROSパラメータについてのより詳細な情報は，ROS Wikiを参照してください．
 
 \end{document}
