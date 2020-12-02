@@ -1,0 +1,61 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\subsection{コントローラを起動するためのlaunchファイル}
+
+ロボットのコントローラを起動するlaunchファイルを作成します．
+「このlaunchファイルを実行することで，ロボットの駆動系が立ち上がり，操縦可能になる」ようなlaunchファイルを作成します．
+
+\textsf{adamr2\_control}パッケージ以下に，\textsf{launch/}ディレクトリを作成し，\textsf{adamr2\_control.launch}という名前のファイルを作成します．
+そして，コード\ref{code:adamr2_control_launch}のように記述します．
+
+\begin{lstlisting}[language=XML, label=code:adamr2_control_launch, caption=\textsf{adamr2\_control.launch}]
+<launch>
+  <arg name="model" default="$(find adamr2_description)/urdf/robot.xacro"/>
+  <arg name="ypspur_params" default="$(find adamr2_control)/config/adamr2.param"/>
+  <arg name="ypspur_dev" default="/dev/ttyACM0"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
+  <rosparam file="$(find adamr2_control)/config/controller.yml" command="load"/>
+
+  <group ns="adamr2">
+    <node name="controller_spawner" type="spawner" pkg="controller_manager"
+          respawn="false" output="screen"
+          args="joint_state_controller diff_drive_controller"/>
+    
+    <node name="robot_state_publisher" type="robot_state_publisher"
+          pkg="robot_state_publisher" respawn="false"
+          output="screen"/>
+    
+    <node name="ypspur_launcher" type="ypspur_launcher.sh"
+          pkg="adamr2_control" output="screen"
+          args="$(arg ypspur_params) $(arg ypspur_dev)"/>
+
+    <node name="adamr2_driver_node" type="adamr2_driver_node" pkg="adamr2_driver"
+          output="screen"/>
+  </group>
+</launch>
+\end{lstlisting}
+
+このlaunchファイルは3つのROSノードと1つのシェルスクリプトを実行します．
+1つ目は\textsf{controller\_manager}パッケージの\textsf{spawner}ノードです．
+このノードを使って，\textsf{joint\_state\_controller}と\textsf{diff\_drive\_controller}の2つのコントローラをロード・実行しています．
+
+2つ目は\textsf{robot\_state\_publisher}です．
+\textsf{robot\_description}というパラメータを読んでロボットのモデルを把握し，更に\textsf{joint\_state}というトピックを受け取ってロボットのTFを更新します．
+\textsf{robot\_description}パラメータはlaunchファイル上部の\textsf{<param>}タグで設定しており，ここではxacroファイルをURDFに展開して\textsf{robot\_description}パラメータに登録しています．
+\textsf{joint\_state}トピックは\textsf{joint\_state\_controller}によって配信されます．
+
+3つ目は\textsf{adamr2\_driver}パッケージの\textsf{adamr2\_driver\_node}です．
+\textsf{diff\_drive\_controller}によって計算された各車輪の回転速度をYP-Spurに伝える役目を持つノードです．
+このノードはこれから作るので，現時点ではこのlaunchファイルを実行することはできません．
+
+最後に，\textsf{ypspur\_launcher.sh}というシェルスクリプトを実行します．
+これは，C++プログラムがYP-Spurとやり取りするのに必要なアプリケーション\textsf{ypspur-coordinator}を実行するためのスクリプトです．
+\textsf{ypspur-coordinator}の実行には，YP-Spurに与えるパラメータファイルとモータードライバのデバイスファイルを引数として指定する必要があるので，シェルスクリプトに引数としてそれらを与えています．
+launchファイル上部の\textsf{\<arg\>}タグで宣言している\textsf{ypspur\_params}と\textsf{ypspur\_dev}がそれに当たります．
+
+\end{document}
