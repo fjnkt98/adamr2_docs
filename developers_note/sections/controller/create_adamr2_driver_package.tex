@@ -1,0 +1,421 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{\textsf{adamr2\_driver}の作成}
+
+いよいよモータードライバと通信するソフトウェアドライバノード\textsf{adamr2\_driver\_node}を作成します．
+ノードの作成にはC++言語を使用するので，ある程度のC++の知識が必要になります．
+
+\subsection{パッケージの作成}
+
+\textsf{adamr2\_driver\_node}を開発するためのパッケージを新たに作成します．
+パッケージ名は\textsf{adamr2\_driver}とします．
+コード\ref{code:create_adamr2_driver}をROSワークスペースディレクトリで実行し，パッケージを生成します．
+
+\begin{lstlisting}[language=sh, label=code:create_adamr2_driver, caption= Create \textsf{adamr2\_driver} Package]
+catkin create pkg adamr2_driver \ 
+  --catkin-deps roscpp hardware_interface transmission_interface controller_manager ypspur
+\end{lstlisting}
+
+依存パッケージとして\textsf{roscpp}，\textsf{hardware\_interface}，\textsf{transmission\_interface}，\textsf{controller\_manager}，\textsf{ypspur}を指定しています．
+
+パッケージのディレクトリ構成はコード\ref{code:directory_structure_of_adamr2_driver}のようになります．
+\textsf{roscpp}を依存パッケージに指定したので，生成されたパッケージのディレクトリにはソースコードを置くためのディレクトリが自動生成されています．
+このパッケージには\textsf{launch/}や\textsf{config/}ディレクトリ等は作りません．
+
+\begin{lstlisting}[label=code:directory_structure_of_adamr2_driver, caption=Directory Structure of \textsf{adamr2\_driver}]
+adamr2_control/
+  ├ include/adamr2_driver/
+  ├ src/
+  ├ package.xml
+  └ CMakeLists.txt
+\end{lstlisting}
+
+\subsection{C++ノードの作成}
+
+ここからC++ノードを作成していきます．
+ここでは以下の3つのソースファイルから1つのノードを作成することにします．
+
+\begin{itemize}
+  \item adamr2\_driver.h：クラス宣言のためのヘッダファイル
+  \item adamr2\_driver.cpp：クラス定義のためのソースファイル
+  \item adamr2\_driver\_node.cpp：ノードの本体
+\end{itemize}
+
+\textsf{adamr2\_driver.h}は\textsf{include/adamr2\_driver/}ディレクトリに，\textsf{adamr2\_driver.cpp}と\textsf{adamr2\_driver\_node.cpp}は\textsf{src/}ディレクトリに置きます．
+
+\subsubsection{\textsf{adamr2\_dirver.h}の記述}
+
+まずはヘッダファイルから記述していきます．
+\textsf{include/adamr2\_driver/}ディレクトリに\textsf{adamr2\_driver.h}という名前のファイルを作成し，コード\ref{code:adamr2_driver_h}のように記述します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_h, caption=\textsf{adamr2\_driver.h}]
+#ifndef ADAMR2_ADAMR2_DRIVER_H_
+#define ADAMR2_ADAMR2_DRIVER_H_
+
+#include <ros/ros.h>
+#include <hardware_interface/joint_command_interface.h>
+#include <hardware_interface/joint_state_interface.h>
+#include <hardware_interface/robot_hw.h>
+
+namespace adamr2 {
+  class Adamr2Driver : public hardware_interface::RobotHW {
+    public:
+      Adamr2Driver();
+      ~Adamr2Driver();
+
+      ros::Time getTime() const {
+        return ros::Time::now();
+      }
+
+      ros::Duration getPeriod() const {
+        return ros::Duration(0.01);
+      }
+
+      int open() const;
+      void stop() const;
+      void read(ros::Time, ros::Duration);
+      void write(ros::Time, ros::Duration);
+
+    protected:
+      hardware_interface::JointStateInterface joint_state_interface;
+      hardware_interface::VelocityJointInterface joint_vel_interface;
+      double cmd_[2];
+      double pos_[2];
+      double vel_[2];
+      double eff_[2];
+  };
+} // namespace adamr2
+
+#endif
+\end{lstlisting}
+
+オリジナルのロボットで\textsf{ros\_control}を使用する場合は，\textsf{hardware\_interface::RobotHW}を継承したクラスを作成し，ロボットに合わせた設定や関数定義をする必要があります．\cite{2018実用ロボット開発のためのrosプログラミング}
+
+ロボットのドライバと通信を行うのが\textsf{read()}メンバ関数と\textsf{write()}メンバ関数です．
+\textsf{read()}関数でモータードライバからホイールエンコーダの情報を読み取り，\textsf{write()}関数でモータードライバに車輪の速度を与えます．
+\footnote{文献によっては\textsf{read()}で指令送信，\textsf{write()}でデータ読み取りを行う，と書かれていることがありますが，感覚的に見て\textsf{write()}で書き込み，\textsf{read()}で読み取りを行うのが道理でしょう．}
+
+\textsf{open()}メンバ関数と\textsf{stop()}メンバ関数はそれぞれYP-Spurの初期化関数と停止関数です．
+メンバ関数の中身の実装は\textsf{adamr2\_driver.cpp}で行います．
+
+メンバ変数の\textsf{joint\_state\_interface}及び\textsf{joint\_vel\_interface}は，URDFで定義したホイールジョイントの情報を登録するための変数です．
+これらの変数の初期化はクラスコンストラクタ内で行います．
+
+\textsf{cmd\_[]}メンバ変数は，コントローラが計算した車輪への速度指令値が格納される配列です．対向2輪ロボットなので配列の要素数は2つです．
+\textsf{pos\_[]}，\textsf{vel\_[]}，\textsf{eff\_[]}メンバ変数は，ジョイントの状態(位置，速度，トルク)を保持するための配列です．
+モータードライバから報告された位置，速度をこの変数に書き込み，それらの値をもとにコントローラがオドメトリ等を計算します．
+尚，トルクに関しては本ロボットでは扱わないので\textsf{eff\_[]}変数が更新されることはありません．
+
+\subsubsection{\textsf{adamr2\_dirver.cpp}の記述}
+
+次にクラスの実装を行うソースファイルを記述します．
+\textsf{src/}ディレクトリに\textsf{adamr2\_driver.cpp}という名前のファイルを作成し，コード\ref{code:adamr2_driver_cpp}のように記述します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_cpp, caption=\textsf{adamr2\_driver.cpp}]
+#include "adamr2_driver/adamr2_driver.h"
+#include <ros/ros.h>
+
+#include <ypspur.h>
+
+namespace adamr2 {
+  Adamr2Driver::Adamr2Driver() {
+    // YP-Spur initialization.
+    if (this->open() < 0) {
+      ROS_WARN_STREAM("Error: Couldn't open spur.\n");
+    }
+
+    pos_[0] = 0.0;
+    pos_[1] = 0.0;
+    vel_[0] = 0.0;
+    vel_[1] = 0.0;
+    eff_[0] = 0.0;
+    eff_[1] = 0.0;
+    cmd_[0] = 0.0;
+    cmd_[1] = 0.0;
+
+    // Joint state setting for right-wheel-joint
+    hardware_interface::JointStateHandle state_handle_1("right_wheel_joint", &pos_[0], &vel_[0], &eff_[0]);
+    joint_state_interface.registerHandle(state_handle_1);
+    // Joint state setting for left-wheel-joint
+    hardware_interface::JointStateHandle state_handle_2("left_wheel_joint", &pos_[1], &vel_[0], &eff_[0]);
+    joint_state_interface.registerHandle(state_handle_2);
+
+    registerInterface(&joint_state_interface);
+
+    // Joint handle setting for right-wheel-joint
+    hardware_interface::JointHandle vel_handle_1(joint_state_interface.getHandle("right_wheel_joint"), &cmd_[0]);
+    joint_vel_interface.registerHandle(vel_handle_1);
+    // Joint handle setting for left-wheel-joint
+    hardware_interface::JointHandle vel_handle_2(joint_state_interface.getHandle("left_wheel_joint"), &cmd_[1]);
+    joint_vel_interface.registerHandle(vel_handle_2);
+
+    registerInterface(&joint_vel_interface);
+  }
+
+  Adamr2Driver::~Adamr2Driver() {
+    this->stop();
+  }
+
+  int Adamr2Driver::open() const {
+    int ret = Spur_init();
+
+    // Set the maximum angular velocity and acceleration.
+    // unit is [rad/s] and [rad/s^2] in tire axis.
+    YP_set_wheel_vel(11.6, 11.6);
+    YP_set_wheel_accel(19.35, 19.35);
+
+    return ret;
+  }
+
+  void Adamr2Driver::stop() const {
+    YP_wheel_vel(0, 0);
+    Spur_stop();
+    ros::Duration(1).sleep();
+    Spur_free();
+  }
+
+  void Adamr2Driver::read(ros::Time time, ros::Duration period) {
+    // yp_vel[0] is right wheel velocity, yp_vel[1] is left wheel velocity.
+    double yp_vel[2] = {0.0, 0.0};
+    YP_get_wheel_vel(&yp_vel[0], &yp_vel[1]);
+
+    // Reverse the velocity of the right wheel.
+    // This is due to the coordinate system of the right wheel.
+    yp_vel[0] = -yp_vel[0];
+
+    for (unsigned int i = 0; i < 2; i++) {
+      pos_[i] += yp_vel[i] * period.toSec();
+      vel_[i] = yp_vel[i];
+    }
+  }
+
+  void Adamr2Driver::write(ros::Time time, ros::Duration period) {
+    YP_wheel_vel(-cmd_[0], cmd_[1]);
+  }
+} // namespace adamr2
+\end{lstlisting}
+
+このソースファイルでは，\textsf{adamr2\_driver.h}で宣言したクラスのメンバ関数の実装を行っています．
+
+以降，関数の詳細な解説を行っていきます．
+まずはクラスコンストラクタから解説します．
+コード\ref{code:adamr2_driver_constructor}にクラスコンストラクタを抜粋します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_constructor, caption=Class Constructor in \textsf{adamr2\_driver.cpp}]
+Adamr2Driver::Adamr2Driver() {
+  // YP-Spur initialization.
+  if (this->open() < 0) {
+    ROS_WARN_STREAM("Error: Couldn't open spur.\n");
+  }
+
+  pos_[0] = 0.0;
+  pos_[1] = 0.0;
+  vel_[0] = 0.0;
+  vel_[1] = 0.0;
+  eff_[0] = 0.0;
+  eff_[1] = 0.0;
+  cmd_[0] = 0.0;
+  cmd_[1] = 0.0;
+
+  // Joint state setting for right-wheel-joint
+  hardware_interface::JointStateHandle state_handle_1("right_wheel_joint", &pos_[0], &vel_[0], &eff_[0]);
+  joint_state_interface.registerHandle(state_handle_1);
+  // Joint state setting for left-wheel-joint
+  hardware_interface::JointStateHandle state_handle_2("left_wheel_joint", &pos_[1], &vel_[0], &eff_[0]);
+  joint_state_interface.registerHandle(state_handle_2);
+
+  registerInterface(&joint_state_interface);
+
+  // Joint handle setting for right-wheel-joint
+  hardware_interface::JointHandle vel_handle_1(joint_state_interface.getHandle("right_wheel_joint"), &cmd_[0]);
+  joint_vel_interface.registerHandle(vel_handle_1);
+  // Joint handle setting for left-wheel-joint
+  hardware_interface::JointHandle vel_handle_2(joint_state_interface.getHandle("left_wheel_joint"), &cmd_[1]);
+  joint_vel_interface.registerHandle(vel_handle_2);
+
+  registerInterface(&joint_vel_interface);
+}
+\end{lstlisting}
+
+クラスコンストラクタでは，YP-Spur，メンバ変数，ジョイントインターフェースの初期化を行っています．
+重要となるのが後半のジョイントインターフェースの初期化です．
+URDFで定義したホイールジョイントの情報を\textsf{hardware\_interface}に登録しています．
+\textsf{hardware\_interface::JointStateHandle}クラスに与える第一引数は，URDFで定義したホイールジョイントの名前です．
+\label{sec:add_wheel_link}で定義した通り，\textsf{right\_wheel\_joint}と\textsf{left\_wheel\_joint}という名前で登録しています．
+
+次に，\textsf{open()}関数と\textsf{stop()}関数です．コード\ref{code:adamr2_driver_open_and_stop}に抜粋します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_open_and_stop, caption=\textsf{open()} and \textsf{stop()} Member Function in \textsf{adamr2\_driver.cpp}]
+int Adamr2Driver::open() const {
+  int ret = Spur_init();
+
+  // Set the maximum angular velocity and acceleration.
+  // unit is [rad/s] and [rad/s^2] in tire axis.
+  YP_set_wheel_vel(11.6, 11.6);
+  YP_set_wheel_accel(19.35, 19.35);
+
+  return ret;
+}
+
+void Adamr2Driver::stop() const {
+  YP_wheel_vel(0, 0);
+  Spur_stop();
+  ros::Duration(1).sleep();
+  Spur_free();
+}
+\end{lstlisting}
+
+\textsf{open()}関数ではYP-Spurの初期化を行っています．
+\textsf{ypspur}ライブラリの\textsf{Spur\_init()}関数を使って初期化を行っています．
+また，\textsf{YP\_set\_wheel\_vel}関数及び\textsf{YP\_set\_wheel\_accel}関数を使って，各車輪の最大速度と最大加速度を設定しています．
+第一引数が右車輪，第二引数が左車輪に対応する値です．どちらも同じ数値を設定します．
+ここで設定している値は，直径\SI{155}{mm}のホイールを付けた際にロボットの直進移動速度が\SI{0.9}{m/s}を超えないように，また直進加速度が\SI{1.5}{m/s^2}を超えないような値に設定しています．
+
+次に\textsf{read()}関数と\textsf{write()}関数です．
+コード\ref{code:adamr2_driver_read_and_write}に抜粋します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_read_and_write, caption=\textsf{read()} and \textsf{write()} Member Function in \textsf{adamr2\_driver.cpp}]
+void Adamr2Driver::read(ros::Time time, ros::Duration period) {
+  // yp_vel[0] is right wheel velocity, yp_vel[1] is left wheel velocity.
+  double yp_vel[2] = {0.0, 0.0};
+  YP_get_wheel_vel(&yp_vel[0], &yp_vel[1]);
+
+  // Reverse the velocity of the right wheel.
+  // This is due to the coordinate system of the right wheel.
+  yp_vel[0] = -yp_vel[0];
+
+  for (unsigned int i = 0; i < 2; i++) {
+    pos_[i] += yp_vel[i] * period.toSec();
+    vel_[i] = yp_vel[i];
+  }
+}
+
+void Adamr2Driver::write(ros::Time time, ros::Duration period) {
+  YP_wheel_vel(-cmd_[0], cmd_[1]);
+}
+\end{lstlisting}
+
+\textsf{read()}関数では\textsf{YP\_get\_wheel\_vel()}関数を使って，モータードライバから各車輪の速度を求めています．
+受け取った結果を一時変数に保持し，座標系を解決してから\textsf{pos\_[]}変数と\textsf{vel\_[]}変数に格納しています．
+
+\label{sec:add_wheel_link}でも述べたように，本ロボットのホイールの座標系は，「ロボットが直進する方向を正とする」と定めています．
+しかしYP-Spurが返す車輪速度値はそのようにはなっていません．
+具体的にいうと，右車輪の速度の正負が逆さまになって返ってきます．
+そのため，右車輪の速度の値の正負を反転させてメンバ変数に記録しています．
+
+YP-Spurから得られる情報は車輪速度だけですが，時間がわかっているので位置も求めることができます(あくまで推定値ですが)．
+\textsf{read()}関数の最後の\textsf{for}文で，ジョイントの位置と速度をメンバ変数に記録しています．
+
+\textsf{write()}関数では車輪の速度指令値をYP-Spurに与えているだけです．
+ここでも右車輪の値の正負は反転させなければなりません．
+
+\subsubsection{\textsf{adamr2\_dirver\_node.cpp}の記述}
+
+最後にROSノードの本体となるソースファイルを記述します．
+\textsf{src/}ディレクトリに\textsf{adamr2\_driver\_node.cpp}という名前のファイルを作成し，コード\ref{code:adamr2_driver_node}のように記述します．
+
+\begin{lstlisting}[language=C++, label=code:adamr2_driver_node, caption=\textsf{adamr2\_driver\_node.cpp}]
+#include "adamr2_driver/adamr2_driver.h"
+#include <ros/ros.h>
+#include <controller_manager/controller_manager.h>
+
+//extern "C" {
+#include <ypspur.h>
+//}
+
+int main(int argc, char *argv[]) {
+  ros::init(argc, argv, "adamr2_driver_node");
+  ros::NodeHandle nh;
+
+  adamr2::Adamr2Driver driver;
+  controller_manager::ControllerManager cm(&driver);
+
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+
+  while(ros::ok()) {
+    ros::Time now = driver.getTime();
+    ros::Duration dt = driver.getPeriod();
+
+    if (YP_get_error_state() == 0) {
+      driver.write(now, dt);
+      cm.update(now, dt);
+
+      driver.read(now, dt);
+    } else {
+      ROS_WARN("T-Frog driver disconnected.");
+      driver.stop();
+
+      while (driver.open() < 0) {
+        ROS_WARN("Try to connect T-Frog driver...");
+        ros::Duration(1).sleep();
+      }
+
+      ROS_INFO("T-Frog driver connected.");
+    }
+
+    dt.sleep();
+  }
+
+  spinner.stop();
+
+  return 0;
+}
+\end{lstlisting}
+
+\textsf{adamr2\_driver.h}で宣言したクラスのオブジェクト(\textsf{driver})を作り，\textsf{ros\_control}の枠組みに従って\textsf{while}文で制御ループを回しています．
+
+\textsf{while}ループの中で，\textsf{driver.write()}関数を呼び出して速度指令値をモータードライバに送り，\textsf{cm.update()}関数を呼び出して状態を更新，\textsf{driver.read()}関数を呼び出して車輪の現在速度を取得しています．
+
+\subsection{\textsf{CMakeLists.txt}の編集}
+
+ノードをビルドするために，\textsf{CMakeLists.txt}を編集します．
+コード
+
+\begin{lstlisting}[language=cmake, label=code:adamr2_driver_cmakelists, caption=\textsf{CMakeLists.txt}]
+cmake_minimum_required(VERSION 2.8.3)
+project(adamr2_driver)
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  hardware_interface
+  transmission_interface
+  controller_manager
+)
+
+catkin_package()
+
+find_library(ypspur_LIBRARIES ypspur)
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${ypspur_INCLUDE_DIRS}
+)
+
+add_executable(adamr2_driver_node
+  src/adamr2_driver_node.cpp
+  src/adamr2_driver.cpp
+)
+
+target_link_libraries(adamr2_driver_node
+  ${catkin_LIBRARIES}
+  ${ypspur_LIBRARIES}
+)
+\end{lstlisting}
+
+\subsection{パッケージのビルド}
+
+ROSノードの実行可能ファイルを生成するために，ビルドを実行します．
+コードを実行して，ワークスペースをビルドしましょう．
+
+\begin{lstlisting}[language=sh, label=code:build_adamr2_driver, caption=Build Workspace]
+catkin build
+\end{lstlisting}
+
+ビルドが通ったら，無事にドライバノードを作成できたことになります．
+
+\end{document}

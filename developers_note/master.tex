@@ -84,6 +84,19 @@
   moredelim = [l][{\color[RGB]{33, 150, 243}}]{:}
 }
 
+\lstdefinelanguage{cmake}{
+  morekeywords={
+    cmake_minimum_required,
+    project,
+    find_package,
+    find_library,
+    catkin_package,
+    include_directories,
+    add_executable,
+    target_link_libraries,
+  }
+}
+
 \usepackage{subfiles} % ファイル分割
 
 % ---レイアウトパラメータ---
@@ -134,6 +147,8 @@
 \subfile{sections/controller/create_adamr2_control_package.tex}
 \subfile{sections/controller/launch_controller.tex}
 \subfile{sections/controller/config_for_diff_drive_controller.tex}
+\subfile{sections/controller/write_ypspur_launcher.tex}
+\subfile{sections/controller/create_adamr2_driver_package.tex}
 
 \bibliography{bibliography}
 \bibliographystyle{junsrt}
