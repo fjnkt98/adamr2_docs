@@ -3,7 +3,7 @@
 
 \begin{document}
 
-\section{コントローラを起動するためのlaunchファイル}
+\subsection{コントローラを起動するためのlaunchファイル}
 
 ロボットのコントローラを起動するlaunchファイルを作成します．
 「このlaunchファイルを実行することで，ロボットの駆動系が立ち上がり，操縦可能になる」ようなlaunchファイルを作成します．
@@ -56,6 +56,6 @@
 最後に，\textsf{ypspur\_launcher.sh}というシェルスクリプトを実行します．
 これは，C++プログラムがYP-Spurとやり取りするのに必要なアプリケーション\textsf{ypspur-coordinator}を実行するためのスクリプトです．
 \textsf{ypspur-coordinator}の実行には，YP-Spurに与えるパラメータファイルとモータードライバのデバイスファイルを引数として指定する必要があるので，シェルスクリプトに引数としてそれらを与えています．
-launchファイル上部の\textsf{<arg>}タグで宣言している\textsf{ypspur\_params}と\textsf{ypspur\_dev}がそれに当たります．
+launchファイル上部の\textsf{\<arg\>}タグで宣言している\textsf{ypspur\_params}と\textsf{ypspur\_dev}がそれに当たります．
 
 \end{document}
