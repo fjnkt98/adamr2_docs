@@ -1,0 +1,25 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+ここまでの作業でロボットの移動機能を実装することができたので，SLAMによる地図作成実験が行えるようになりました．
+本章では，\textsf{slam\_gmapping}\footnote{\url{http://wiki.ros.org/gmapping}}パッケージを使用したSLAMによる地図作成実験の手順を解説します．
+
+\section{SLAMの実行に必要なもの}
+
+\textsf{slam\_gmapping}パッケージを使用してSLAMを行うには，以下の要素が必要となります．
+
+\begin{itemize}
+  \item レーザースキャンのデータ(\textsf{sensor\_msgs/LaserScan}型のトピックメッセージ)
+  \item オドメトリのデータ(\textsf{/tf}トピックメッセージ)
+\end{itemize}
+
+\textsf{slam\_gmapping}は，デフォルトの設定では「\textsf{/tf}(\textsf{/tf/tfMessage})」と「\textsf{/scan}(\textsf{/sensor\_msgs/LaserScan})」の2つのトピックを受信します．
+\textsf{/scan}についてはRPLiDARを使うことで提供することができます．
+\textsf{/tf}については，\ref{chap:controller_implementation}章で設定した\textsf{diff\_drive\_controller}が配信してくれるため，特に設定する必要はありません．
+
+SLAMの実行にはオドメトリが必要になりますが，\textsf{slam\_gmapping}が必要とするのは\textsf{/tf}の方のオドメトリなので，オドメトリのトピック(\textsf{geometry\_msgs/Odometry})は必ずしも必要ではありません．
+トピックの方のオドメトリは\textsf{diff\_drive\_controller}が同じく配信してくれるため，特に考える必要はありません．
+
+\end{document}
