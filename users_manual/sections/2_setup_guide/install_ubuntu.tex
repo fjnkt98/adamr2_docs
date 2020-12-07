@@ -70,4 +70,26 @@ Ubuntu 18.04LTSのISOファイルは，以下のミラーサーバからダウ�
 「Install Ubuntu」を選択して，Ubuntuのインストールを開始します．
 Ubuntuのインストールはウィザードの指示に従って作業を行えば大丈夫です．
 
+\subsection{USBデバイスを使用するための権限設定}
+
+RPLiDARやIntel Realsenseなど，USBデバイスをROSノードから使用するためには，ユーザーが\textsf{dialout}グループに属している必要があります．
+Ubuntuのインストールが完了したら，ユーザーが\textsf{dialout}グループに属しているかどうかを確認してください．
+コード\ref{code:check_user_belong_to_dialout}を実行することで確認を行うことができます．
+
+\begin{lstlisting}[language=sh, label=code:check_user_belong_to_dialout, caption=Check if the User Belongs to the \textsf{dialout} Group]
+groups $USER
+\end{lstlisting}
+
+このコマンドを実行すると，現在のユーザーが所属しているグループの一覧が表示されます．
+表示された一覧に\textsf{dialout}の文字が無い場合は，ユーザーは\textsf{dialout}グループに所属していません．
+このままではUSBデバイスにアクセスする権限が無いので，ユーザーを\textsf{dialout}グループに追加します．
+
+コード\ref{code:add_user_into_dialout}を実行することで，ユーザーを\textsf{dialout}グループに追加することができます．
+
+\begin{lstlisting}[language=sh, label=code:add_user_into_dialout, caption=Add the User into \textsf{dialout} Group]
+sudo usermod -aG dialout $USER
+\end{lstlisting}
+
+コード\ref{code:add_user_into_dialout}を実行した後，マシンを再起動してください．
+
 \end{document}
