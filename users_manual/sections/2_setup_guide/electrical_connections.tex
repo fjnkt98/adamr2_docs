@@ -24,6 +24,7 @@
           DCプラグ & 761KS15 & 1  \\ \hline
           T-Frog モータードライバ & TF-2MD3-R6 & 1  \\ \hline
           T-Frog 電源基板 & TF-PW36-5/12M & 1  \\ \hline
+          緊急停止スイッチ基板 & -- & 1 \\ \hline
         \end{tabular}
     \end{center}
     \caption{List of Electrical Components}
@@ -71,7 +72,7 @@
 
   \begin{figure}[ht]
     \centering
-    \includegraphics[width=100truemm, clip]{images/electrical_connections.png}
+    \includegraphics[width=100truemm, clip]{images/electrical_connections.drawio.pdf}
     \caption{Electrical Connection Diagram}
     \label{fig:electrical_connection_diagram}
   \end{figure}
@@ -82,13 +83,6 @@
   鉛蓄電池WP20-12IEはM5ねじの接続端子を持っているので，Y型圧着端子をねじ止めすることで接続することができます．  
   ねじの締結には8mm幅のレンチを使用できます．感電やショートに十分注意して作業してください．
 
-  \begin{figure}[ht]
-    \centering
-    \includegraphics[width=65truemm, clip]{images/pb_battery.jpg}
-    \caption{Detail of How to Connect Pb-Battery}
-    \label{fig:pb_battery}
-  \end{figure}
-
   \subsubsection{端子台}
   端子台ATK-30-6PはM5ねじの接続端子を持っているので，Y型圧着端子をねじ止めすることで接続できます．
 
@@ -96,10 +90,23 @@
   上の接続例でも，GNDや12Vの箇所でこのような接続方法をとっています．
 
   \begin{figure}[ht]
-    \centering
-    \includegraphics[width=65truemm, clip]{images/terminal.jpg}
-    \caption{Detail of How to Connect Screw Terminal Block}
-    \label{fig:terminal}
+    \begin{center}
+      \begin{tabular}{c}
+        \begin{minipage}{.45\linewidth}
+          \centering
+          \includegraphics[height=50truemm, clip]{images/pb_battery.jpg}
+          \caption{Detail of How to Connect Pb-Battery}
+          \label{fig:pb_battery}
+        \end{minipage}
+
+        \begin{minipage}{.45\linewidth}
+          \centering
+          \includegraphics[height=50truemm, clip]{images/terminal.jpg}
+          \caption{Detail of How to Connect Screw Terminal Block}
+          \label{fig:terminal}
+        \end{minipage}
+      \end{tabular}
+    \end{center}
   \end{figure}
 
   \subsubsection{スイッチ}
@@ -109,21 +116,48 @@
   差込型接続端子ははんだ付け無しで何度も取り外しができますが，付け直す度に端子が摩擦で削れて接続が緩くなる可能性があります．
   取り外しはできるだけ最小限に抑えるよう注意してください．
 
-  \begin{figure}[ht]
-    \centering
-    \includegraphics[width=65truemm, clip]{images/switch.jpg}
-    \caption{Detail of How to Connect Switch}
-    \label{fig:switch}
-  \end{figure}
-
   \subsubsection{T-Frog電源基板}
   T-Frog電源基板は，M3ねじ止めターミナルを持っています．
   接続には内径φ3.2の圧着端子を使用します．ADAMR2では丸形圧着端子を使用しています．
 
   \begin{figure}[ht]
+    \begin{center}
+      \begin{tabular}{c}
+        \begin{minipage}{.45\linewidth}
+          \centering
+          \includegraphics[width=65truemm, clip]{images/switch.jpg}
+          \caption{Detail of How to Connect Switch}
+          \label{fig:switch}
+        \end{minipage}
+
+        \begin{minipage}{.45\linewidth}
+          \centering
+          \includegraphics[width=65truemm, clip]{images/t-frog.jpg}
+          \caption{Detail of How to Connect T-Frog Power Supply Board}
+          \label{fig:t-frog}
+        \end{minipage}
+      \end{tabular}
+    \end{center}
+  \end{figure}
+
+  \subsubsection{T-Frogモータードライバ}
+  T-Frogモータードライバは，専用のコネクタを介してロジック電源・モーター電源の2種類の電源を接続します．
+  購入時に付属してくるコネクタをケーブルに取り付けて接続します．
+  詳細はi-cart mini組立説明書(\url{http://t-frog.com/products/icart_mini/assembly/})を参照してください．
+
+  \subsubsection{緊急停止スイッチ基板}
+  緊急停止スイッチ基板はADAMR2プロジェクトオリジナルの基板です．
+  外観を図\ref{fig:emergency_stop_switch_circuit}に示します．
+  パワーリレーと緊急停止スイッチを用いて，モーター電源を遮断できるようになっています．
+  T-Frog電源基板に使用されているものと同一のねじ止めターミナルを持っており，モーター電源はここに接続します．
+  緊急停止スイッチはXHコネクタによって接続します．
+
+  この緊急停止スイッチ基板の設計データは\url{https://github.com/fjnkt98/adamr2_emg_board/releases/tag/v0.1.0}にて公開されているため，誰でも同じものを作ることができます．
+
+  \begin{figure}[ht]
     \centering
-    \includegraphics[width=65truemm, clip]{images/t-frog.jpg}
-    \caption{Detail of How to Connect T-Frog Power Supply Board}
-    \label{fig:t-frog}
+    \includegraphics[width=65truemm]{images/emergency_stop_switch_circuit.jpg}
+    \caption{Emergency Stop Switch Circuit Board for ADAMR2}
+    \label{fig:emergency_stop_switch_circuit}
   \end{figure}
 \end{document}
