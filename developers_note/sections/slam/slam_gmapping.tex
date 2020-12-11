@@ -1,0 +1,17 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{\textsf{slam\_gmapping}の概要}
+
+\textsf{slam\_gmapping}パッケージは，Gmapping\footnote{\url{https://openslam-org.github.io/gmapping.html}}によるSLAMをROSで実行するためのパッケージです．
+Gmappingは2D SLAMの1種で，ベイズフィルタ系にカテゴライズされるSLAMです．
+パーティクルフィルタを用いて占有格子地図を構築するアルゴリズムで実装されています．
+Gmappingで使われているフレームワークはFastSLAM2.0と呼ばれており，\textsf{Gmapping}ではスキャンマッチングを使ってロボットの位置の候補を絞り込んでからフィルタをアップデートしています．
+
+Gmappingについての詳しい概要は，OpenSLAMのホームページやROS Wikiの当該ページに記載されています．
+また，実装されているアルゴリズムについては論文\cite{Gmapping}に詳しく記載されています．
+パラメータ調整の際にはアルゴリズムに対する深い理解が必要となるので，一度は目を通すことをお勧めします．
+
+\end{document}

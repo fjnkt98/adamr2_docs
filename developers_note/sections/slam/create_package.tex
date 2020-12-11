@@ -1,0 +1,138 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{SLAMのためのパッケージ作成}
+
+\subsection{パッケージの作成}
+
+\textsf{slam\_gmapping}を実行するためのパッケージを作成します．
+名前は\textsf{adamr2\_slam}とします．
+コード\ref{code:create_adamr2_slam_package}を実行して，パッケージを作成します．
+依存パッケージの指定はここではしなくても構いません．
+
+\begin{lstlisting}[language=sh, label=code:create_adamr2_slam_package, caption=Create \textsf{adamr2\_slam} Package]
+catkin create pkg adamr2_slam
+\end{lstlisting}
+
+このパッケージには\textsf{slam\_gmapping}のノードを実行するためのlaunchファイルと，ノードに渡すパラメータを記述したパラメータファイルを格納します．
+ディレクトリ構成はコード\ref{code:directory_structure_of_adamr2_slam}のようになります．
+
+\begin{lstlisting}[language=sh, caption=Directory Structure of adamr2\_slam, label=code;directory_structure_of_adamr2_slam]
+adamr2_description/
+  ├ launch/
+  ├ config/
+  ├ package.xml
+  └ CMakeLists.txt
+\end{lstlisting}
+
+\textsf{launch/}ディレクトリには各種launchファイルを格納します．
+\textsf{config/}ディレクトリにはパラメータファイルを格納します．
+
+パッケージが作成できたら，次はlaunchファイルとパラメータファイルの準備に入ります．
+
+\subsection{launchファイルの作成}
+
+\textsf{slam\_gmapping}のノードを実行するためのlaunchファイルを作成します．
+\textsf{adamr2\_slam}パッケージの\textsf{launch/}ディレクトリ内に\textsf{gmapping.launch}という名前のファイルを作成し，コード\ref{gmapping_launch}のように記述します．
+
+\begin{lstlisting}[language=XML, label=code:gmapping_launch, caption=\textsf{gmapping.launch}]
+<launch>
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" clear_params="true">
+    <rosparam file="$(find adamr2_slam)/config/gmapping/gmapping.yml" command="load"/>
+    <remap from="scan" to="/adamr2/scan"/>
+  </node>
+</launch>
+\end{lstlisting}
+
+1つのノードのみを実行する単純なlaunchファイルです．
+\textsf{rosparam}タグを使って，パラメータファイルに記述したパラメータを一括でノードに渡しています．
+パラメータファイルは次の小節で作成するものです．
+また，\ref{sec:prepare_rplidar_launch}でRPLiDARが出力する\textsf{sensor\_msgs/LaserScan}型メッセージのトピックに名前空間を設定していたため，それを\textsf{slam\_gmapping}ノードが受け取れるように\textsf{remap}タグを使ってトピック名を変更しています．
+
+\subsection{パラメータファイルの作成}
+
+次に，パラメータファイルを作成します．
+\textsf{config/}ディレクトリ内に\textsf{gmapping.yml}という名前のファイルを作成し，コード\ref{code:gmapping_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:gmapping_yml, caption=\textsf{gmapping.yml}]
+# Basic Parameters
+throttle_scans: 1               # default = 1
+base_frame: base_footprint      # default = base_link
+map_frame: map                  # default = map
+odom_frame: odom                # default = odom
+map_update_interval: 5.0        # default = 5.0
+transform_publish_period: 0.05  # default = 0.05
+
+# Laser Parameters
+maxRange: 18
+maxUrange: 15
+sigma: 0.05       # default = 0.05
+kernelSize: 1     # default = 1
+lstep: 0.05       # default = 0.05
+astep: 0.05       # default = 0.05
+iterations: 5     # default = 5
+lsigma: 0.075     # default = 0.075
+ogain: 3.0        # default = 3.0
+lskip: 0          # default = 0
+minimumScore: 0.0 # default = 0.0
+
+# Motion Model Parameters
+srr: 0.1  # default = 0.1
+srt: 0.2  # default = 0.2
+str: 0.1  # default = 0.1
+stt: 0.2  # default = 0.2
+
+# Particle Filter Parameters
+linearUpdate: 1.0       # default = 1.0
+angularUpdate: 0.5      # default = 0.5
+temporalUpdate: -1.0    # default = -1.0
+resampleThreshold: 0.5  # default = 0.5
+particles: 30           # default = 30
+
+# Map Parameters
+xmin: -100.0      # default = -100.0
+ymin: -100.0      # default = -100.0
+xmax: 100.0       # default = 100.0
+ymax: 100.0       # default = 100.0
+delta: 0.05       # default = 0.05
+occ_thresh: 0.25  # default = 0.25
+
+# Likelihood Parameters
+llsamplerange: 0.01   # default = 0.01
+llsamplestep: 0.01    # default = 0.01
+lasamplerange: 0.005  # default = 0.005
+lasamplestep: 0.005   # default = 0.005
+\end{lstlisting}
+
+ほとんどデフォルト値に設定しています．
+ADAMR2ではベースリンクを\textsf{base\_footprint}にしているため，\textsf{base\_frame}のみ変更しています．
+また，レーザーセンサの最大レンジを示す\textsf{maxRange}と，地図作成に使用するレーザーの最大距離を示す\textsf{maxUrange}については，使用するセンサに従って変更する必要があります．
+筆者の環境ではRPLiDAR A2M6を使用しており，このモデルは最大測定距離が\SI{18}{m}のため，\textsf{maxRange}を18に，\textsf{maxUrange}を15に設定しています．
+
+\subsection{\textsf{package.xml}の編集}
+
+このパッケージは\textsf{slam\_gmapping}のノードを実行するため，依存パッケージに\textsf{slam\_gmapping}を追加しておきます．
+
+\textsf{package.xml}をコード\ref{code:package_xml_of_adamr2_slam}のように編集します．
+
+\begin{lstlisting}[language=XML, label=code:package_xml_of_adamr2_slam, caption=\textsf{package.xml}]
+<?xml version="1.0"?>
+<package format="2">
+  <name>adamr2_slam</name>
+  <version>0.0.0</version>
+  <description>The adamr2_slam package</description>
+
+  <maintainer email="hoge@hogehoge.com">hoge</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>slam_gmapping</exec_depend>
+</package>
+\end{lstlisting}
+
+実行時に\textsf{slam\_gmapping}を使用するため，\textsf{exec\_depend}タグを使って\textsf{slam\_gmapping}パッケージを指定しています．
+
+\end{document}
