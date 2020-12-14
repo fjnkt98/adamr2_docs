@@ -5,6 +5,24 @@
 
 \section{オドメトリ調整}
 
+\ref{sec:config_for_diff_drive_controller}にて，車輪の半径やトレッド等，\textsf{diff\_drive\_controller}に与えるパラメータを記述しました．
+パラメータの値は設計値をそのまま設定しましたが，実際にロボットを組み立ててみると設計値からはズレが生じます．
+それによってオドメトリに誤差が混入してしまう問題があります．
 
+この節では\textsf{diff\_drive\_controller}のパラメータをチューニングすることによるオドメトリ調整の手順を説明します．
+あくまで調整方法の例の1つであり，本節で説明する例が絶対的に正しいことを保証するものではありません．
+
+\subsection{差動二輪ロボットの運動学}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=80truemm]{images/ddmr_kinematics.pdf}
+  \caption{Coordinate System of Differential Drive Mobile Robot}
+  \label{fig:coordinate_system_of_ddmr}
+\end{figure}
+
+\subsection{調整対象のパラメータ}
+
+\subsection{パラメータ調整の手順}
 
 \end{document}
