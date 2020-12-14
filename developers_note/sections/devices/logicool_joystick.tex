@@ -13,8 +13,8 @@
   \begin{figure}[ht]
     \centering
     \includegraphics[width=65truemm, clip]{images/f710_overview.png}
-    \label{fig:f710_overview}
     \caption{Logicool F710 Gamepad}
+    \label{fig:f710_overview}
   \end{figure}
 
   有線接続のF310は2310円，無線接続のF710は4950円と安価に入手することができ，ロボットの操縦用コントローラとして使用することもできます．
@@ -34,8 +34,8 @@
   \begin{figure}[ht]
     \centering
     \includegraphics[clip, width=65truemm]{images/mode_switch.jpg}
-    \label{fig:mode_switch}
     \caption{Mode Selector Switch for F710}
+    \label{fig:mode_switch}
   \end{figure}
 
   ROSパッケージの\textsf{joy}\footnote{\url{http://wiki.ros.org/joy}}からF310/F710ゲームパッドを使用するときは，\textsf{DirectInput}モードを使用する必要があります．
@@ -49,22 +49,22 @@
 
 \begin{table}[h]
   \begin{center}
-    \caption{Button Mapping of F310/F710 Gamepad in ROS}
     \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
       Buttons & X & A & B & Y & LB & RB & LT & RT & BACK & START & LeftStick & RightStick \\ \hline
        index  & 0 & 1 & 2 & 3 & 4  & 5  & 6  & 7  & 8    &   9   &   10      &     11     \\ \hline
     \end{tabular}
+    \caption{Button Mapping of F310/F710 Gamepad in ROS}
     \label{tab:buttom_mapping}
   \end{center}
 \end{table}
 
 \begin{table}[h]
   \begin{center}
-    \caption{Axis Mapping of F310/F710 Gamepad in ROS}
     \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
       Axis  & Left Horiz. & Left Vert. & Right Horiz. & Right Vert. & Arrow Horiz. & Arrow Vert. \\ \hline
       index & 0 & 1 & 2 & 3 & 4  & 5 \\ \hline
     \end{tabular}
+    \caption{Axis Mapping of F310/F710 Gamepad in ROS}
     \label{tab:axis_mapping}
   \end{center}
 \end{table}

@@ -88,8 +88,8 @@
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/joint.png}
-  \label{fig:joint}
   \caption{Coordinate Transformation Relationship Between Link and Joint\cite{urdf_xml_joint}}
+  \label{fig:joint}
 \end{figure}
 
 \textsf{origin}要素もマクロが引数として受け取ったものを使用します．
@@ -179,8 +179,8 @@ ROS REP:103\footnote{\url{https://www.ros.org/reps/rep-0103.html}}にあるよ�
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/base_link_cad_model.png}
-  \label{fig:base_link_cad_model}
   \caption{3D Model of \textsf{base\_link}}
+  \label{fig:base_link_cad_model}
 \end{figure}
 
 STLファイルをエクスポートする前の準備として，まず座標系を定義しましょう．
@@ -191,8 +191,8 @@ STLファイルをエクスポートする前の準備として，まず座標�
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/base_link_create_axes.png}
-  \label{fig:base_link_create_axes}
   \caption{Add Axes for STL Export}
+  \label{fig:base_link_create_axes}
 \end{figure}
 
 \noindent
@@ -203,8 +203,8 @@ STLファイルをエクスポートする前の準備として，まず座標�
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/base_link_create_coordinate_system.png}
-  \label{fig:base_link_create_coordinate_system}
   \caption{Add Coordinate System for STL Export}
+  \label{fig:base_link_create_coordinate_system}
 \end{figure}
 
 座標系の定義ができたので，STLファイルをエクスポートしましょう．
@@ -214,8 +214,8 @@ STLを選択すると，「ｵﾌﾟｼｮﾝ」ボタンが表示されるの�
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/base_link_save_as_stl.png}
-  \label{fig:base_link_save_as_stl}
   \caption{Save as STL File}
+  \label{fig:base_link_save_as_stl}
 \end{figure}
 
 \noindent
@@ -227,8 +227,8 @@ STLを選択すると，「ｵﾌﾟｼｮﾝ」ボタンが表示されるの�
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm, clip]{images/base_link_stl_export_options.png}
-  \label{fig:base_link_stl_export_options}
   \caption{STL Export Options}
+  \label{fig:base_link_stl_export_options}
 \end{figure}
 
 この設定で「OK」をクリックし，「保存」を選択することで，ROSでそのまま使用できるSTLファイルを作成することができます．
@@ -319,8 +319,8 @@ launchファイルを実行すると，\textsf{rviz}が起動し，図\ref{fig:p
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm]{images/plain_rviz.png}
-  \label{fig:plain_rviz}
   \caption{Screenshot of \textsf{rviz} Right After It Started}
+  \label{fig:plain_rviz}
 \end{figure}
 
 起動した直後はオプションを何も設定していないので，何も表示されません．
@@ -329,8 +329,8 @@ launchファイルを実行すると，\textsf{rviz}が起動し，図\ref{fig:p
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm]{images/rviz_add_robot_model.png}
-  \label{fig:rviz_add_robot_model}
   \caption{Add \textsf{RobotModel} to \textsf{rviz}}
+  \label{fig:rviz_add_robot_model}
 \end{figure}
 
 \noindent
@@ -344,8 +344,8 @@ launchファイルを実行すると，\textsf{rviz}が起動し，図\ref{fig:p
 \begin{figure}[ht]
   \centering
   \includegraphics[width=100truemm]{images/rviz_robot_model_successfully_viewed.png}
-  \label{fig:rviz_robot_model_subccessfully_viewed}
   \caption{\textsf{base\_link} is Correctly Displayed}
+  \label{fig:rviz_robot_model_subccessfully_viewed}
 \end{figure}
 
 本節では，コンポーネントとしてのxacroファイルの記述の仕方，SolidWorksを利用したSTLファイルの作成方法，ルートファイルからのインクルードの仕方，及び\textsf{rviz}を使ったURDFモデルの可視化について説明しました．
