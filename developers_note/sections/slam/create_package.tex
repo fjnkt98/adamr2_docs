@@ -35,10 +35,12 @@ adamr2_description/
 \subsection{launchファイルの作成}
 
 \textsf{slam\_gmapping}のノードを実行するためのlaunchファイルを作成します．
-\textsf{adamr2\_slam}パッケージの\textsf{launch/}ディレクトリ内に\textsf{gmapping.launch}という名前のファイルを作成し，コード\ref{gmapping_launch}のように記述します．
+\textsf{adamr2\_slam}パッケージの\textsf{launch/}ディレクトリ内に\textsf{gmapping.launch}という名前のファイルを作成し，コード\ref{code:gmapping_launch}のように記述します．
 
 \begin{lstlisting}[language=XML, label=code:gmapping_launch, caption=\textsf{gmapping.launch}]
 <launch>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
   <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" clear_params="true">
     <rosparam file="$(find adamr2_slam)/config/gmapping/gmapping.yml" command="load"/>
     <remap from="scan" to="/adamr2/scan"/>
@@ -50,6 +52,8 @@ adamr2_description/
 \textsf{rosparam}タグを使って，パラメータファイルに記述したパラメータを一括でノードに渡しています．
 パラメータファイルは次の小節で作成するものです．
 また，\ref{sec:prepare_rplidar_launch}でRPLiDARが出力する\textsf{sensor\_msgs/LaserScan}型メッセージのトピックに名前空間を設定していたため，それを\textsf{slam\_gmapping}ノードが受け取れるように\textsf{remap}タグを使ってトピック名を変更しています．
+また，ロボットのURDFの情報をROSに登録する処理も行っています．
+これは，後述するオフラインSLAMにおいて，ロボットのモデルを可視化するために必要な処理です．
 
 \subsection{パラメータファイルの作成}
 
