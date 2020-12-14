@@ -14,6 +14,71 @@
 
 \subsection{差動二輪ロボットの運動学}
 
+ここで差動二輪ロボットの運動学について振り返っておきます．
+図\ref{fig:coordinate_system_of_ddmr}に移動ロボットの座標系を示します．
+
+グローバル座標系として$\Sigma_{G}$を，ローカル座標系として$\Sigma_{M}$を定義します．
+車輪半径を$R$，ホイールトレッドを$2L$とし，左右の車輪の回転速度をそれぞれ$\dot{\phi_{r}}$，$\dot{\phi_{l}}$[\SI{}{rad/s}]とします．
+また，グローバル座標系におけるロボットの位置を$\vec{x} = (x, y, \theta)^T$とします．
+
+ロボットの直進速度を$v$，旋回速度を$\omega$とすると，ローカル座標系におけるロボットの移動速度ベクトルは${}^{M}\dot{\vec{x}} = (v, 0, \omega)^T$，
+グローバル座標系におけるロボットの移動速度ベクトルは${}^{G}\dot{\vec{x}} = (v\cos{\theta}, v\sin{\theta}, \omega)^T$となります．
+
+以上より，差動二輪ロボットの運動学は式\ref{eq:ddmr_kinematics}のようになります．
+
+\begin{equation}
+  \begin{cases}
+    v = R \frac{\dot{\phi_{r}} + \dot{\phi_{l}}}{2} \\
+    \omega = R \frac{\dot{\phi_{r}} - \dot{\phi_{l}}}{2L}
+  \end{cases}
+  \label{eq:ddmr_kinematics}
+\end{equation}
+
+\noindent
+式\ref{eq:ddmr_kinematics}の行列表示は式\ref{eq:ddmr_kinematics_in_matrix}のようになります．
+
+\begin{equation}
+  \begin{pmatrix}
+    v \\
+    \omega
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+    \frac{R}{2} & \frac{R}{2} \\
+    \frac{R}{2L} & -\frac{R}{2L}
+  \end{pmatrix}
+  \begin{pmatrix}
+    \dot{\phi_{r}} \\
+    \dot{\phi_{l}}
+  \end{pmatrix}
+  \label{eq:ddmr_kinematics_in_matrix}
+\end{equation}
+
+ホイールオドメトリの式は，式\ref{eq:ddmr_kinematics}の式から求めたロボットの速度を積分したものになります．
+
+\begin{equation}
+  \begin{cases}
+    \theta (t) = \int_0^t \omega(\tau)d\tau + \theta (t_0) \\
+    x(t) = \int_0^t v(\tau)\cos{\theta (\tau)}d\tau + x(t_0) \\
+    y(t) = \int_0^t v(\tau)\sin{\theta (\tau)}d\tau + y(t_0)
+  \end{cases}
+  \label{eq:odometry_equation}
+\end{equation}
+
+\noindent
+式\ref{eq:odometry_equation}は連続時間での方程式です．
+サンプリング時間$\Delta{t}$で式\ref{eq:odometry_equation}を離散化すると，
+
+\begin{equation}
+  \begin{cases}
+    \theta (t) = \sum_{i=1}^t \omega_{i}\Delta{t} + \theta_{0} \\
+    x(t) = \sum_{i=1}^t v_{i}\cos{\theta_{i}} + x_{0} \\
+    y(t) = \sum_{i=1}^t v_{i}\sin{\theta_{i}} + y_{0}
+  \end{cases}
+\end{equation}
+
+\noindent
+となります．ただし，$v_{i}$，$\omega_{i}$は時刻$i-1$から$i$までの速度の値です．
 
 \begin{figure}[ht]
   \centering
@@ -62,11 +127,11 @@
     \draw[rotate around={30:(0, 0)}] (0.15, -1.8) node[below right]{$R$};
 
     % Center of Robot
-    \draw[thick, dashed] (0, 0) -- (0, -5) node[below]{${}^{G}x$};
-    \draw[thick, dashed] (0, 0) -- (-5, 0) node[left]{${}^{G}y$};
+    \draw[thick, dashed] (0, 0) -- (0, -5) node[below]{$x$};
+    \draw[thick, dashed] (0, 0) -- (-5, 0) node[left]{$y$};
     \draw[thick, dashed] (0, 0) -- (3, 0);
     \draw[thick, ->] (2, 0) arc [start angle=0, delta angle=30, radius=2];
-    \draw (2, 0.6) node[right]{${}^{G}\theta$};
+    \draw (2, 0.6) node[right]{$\theta$};
   \end{tikzpicture}
   \caption{Coordinate System of Differential Drive Mobile Robot}
   \label{fig:coordinate_system_of_ddmr}
