@@ -182,8 +182,44 @@ rosrun rqt_reconfigure rqt_reconfigure
 コード\ref{code:echo_adamr2_diff_drive_controller_odom}を実行することで，ターミナルにオドメトリの情報を表示することができます．
 
 \begin{lstlisting}[language=sh, label=code:echo_adamr2_diff_drive_controller_odom, caption=Show Odometry Topic Message]
-rostopic echo /adamr2/diff_drive_controller/odom
+$ rostopic echo /adamr2/diff_drive_controller/odom
+header: 
+  seq: 4713
+  stamp: 
+    secs: 94
+    nsecs: 923000000
+  frame_id: "odom"
+child_frame_id: "base_footprint"
+pose: 
+  pose: 
+    position: 
+      x: -1.28079082702
+      y: -0.174312002338
+      z: 0.0
+    orientation: 
+      x: -0.0
+      y: 0.0
+      z: 0.0594169792921
+      w: -0.998233250584
+  covariance: [0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+twist: 
+  twist: 
+    linear: 
+      x: -0.000235845256857
+      y: 0.0
+      z: 0.0
+    angular: 
+      x: 0.0
+      y: 0.0
+      z: 0.000285137126708
+  covariance: [0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
 \end{lstlisting}
+
+トピックを受信すると，コード\ref{code:echo_adamr2_diff_drive_controller_odom}のような情報がターミナル上に表示されます．
+この内，\textsf{pose}の項の\textsf{position}がロボットの位置，\textsf{orientation}がロボットの回転を表します．
+ロボットが直進すると，\textsf{position}の\textsf{x}の値が増加します．
+この値を実測値と示し合わせ，実測値よりも小さければ\textsf{wheel\_radius\_multiplier}の値を大きくします．
+実測値よりも大きければ，\textsf{wheel\_radius\_multiplier}の値を小さくします．
 
 \subsection{レーザースキャナを利用したオドメトリ調整}
 
