@@ -28,8 +28,8 @@
 
 \begin{equation}
   \begin{cases}
-    v = R \frac{\dot{\phi_{r}} + \dot{\phi_{l}}}{2} \\
-    \omega = R \frac{\dot{\phi_{r}} - \dot{\phi_{l}}}{2L}
+    v = R \displaystyle \frac{\dot{\phi_{r}} + \dot{\phi_{l}}}{2} \\
+    \omega = R \displaystyle \frac{\dot{\phi_{r}} - \dot{\phi_{l}}}{2L}
   \end{cases}
   \label{eq:ddmr_kinematics}
 \end{equation}
@@ -44,8 +44,8 @@
   \end{pmatrix}
   =
   \begin{pmatrix}
-    \frac{R}{2} & \frac{R}{2} \\
-    \frac{R}{2L} & -\frac{R}{2L}
+    \displaystyle \frac{R}{2} & \displaystyle \frac{R}{2} \\ \\
+    \displaystyle \frac{R}{2L} & \displaystyle -\frac{R}{2L}
   \end{pmatrix}
   \begin{pmatrix}
     \dot{\phi_{r}} \\
@@ -58,27 +58,16 @@
 
 \begin{equation}
   \begin{cases}
-    \theta (t) = \int_0^t \omega(\tau)d\tau + \theta (t_0) \\
-    x(t) = \int_0^t v(\tau)\cos{\theta (\tau)}d\tau + x(t_0) \\
-    y(t) = \int_0^t v(\tau)\sin{\theta (\tau)}d\tau + y(t_0)
+    \theta (t) = \displaystyle \int_0^t \omega(\tau)d\tau + \theta (t_0) \\
+    x(t) = \displaystyle \int_0^t v(\tau)\cos{\theta (\tau)}d\tau + x(t_0) \\
+    y(t) = \displaystyle \int_0^t v(\tau)\sin{\theta (\tau)}d\tau + y(t_0)
   \end{cases}
   \label{eq:odometry_equation}
 \end{equation}
 
-\noindent
-式\ref{eq:odometry_equation}は連続時間での方程式です．
-サンプリング時間$\Delta{t}$で式\ref{eq:odometry_equation}を離散化すると，
-
-\begin{equation}
-  \begin{cases}
-    \theta (t) = \sum_{i=1}^t \omega_{i}\Delta{t} + \theta_{0} \\
-    x(t) = \sum_{i=1}^t v_{i}\cos{\theta_{i}} + x_{0} \\
-    y(t) = \sum_{i=1}^t v_{i}\sin{\theta_{i}} + y_{0}
-  \end{cases}
-\end{equation}
-
-\noindent
-となります．ただし，$v_{i}$，$\omega_{i}$は時刻$i-1$から$i$までの速度の値です．
+式\ref{eq:odometry_equation}より，ホイールオドメトリでは積分によって位置を求めるため，式\ref{eq:ddmr_kinematics}で計算した速度に含まれる誤差が加算されていき，誤差が大きくなっていくことがわかります．
+式\ref{eq:ddmr_kinematics}の中の誤差要因は車輪半径$R$，車輪トレッド$2L$，各車輪の各速度$\dot{\phi_{r}}$，$\dot{\phi_{l}}$ですが，各車輪の各速度はロータリーエンコーダの精度が十分に高い場合が多く，車輪半径$R$と車輪トレッド$2L$のばらつきによる誤差と比べると小さいことがほとんどです．
+そのため，調整すべきパラメータは車輪半径$R$と車輪トレッド$2L$となります．
 
 \begin{figure}[ht]
   \centering
@@ -139,6 +128,65 @@
 
 \subsection{調整対象のパラメータ}
 
-\subsection{パラメータ調整の手順}
+前小節にて，調整すべきパラメータが車輪半径と車輪トレッドであることを説明しました．
+\textsf{diff\_drive\_controller}では，これらの数値はそれぞれ\textsf{wheel\_radius}と\textsf{wheel\_separation}の2つのパラメータで指定します．
+
+実際にパラメータを調整するときは，これらのパラメータを直接編集するのではなく，\textsf{whel\_radius\_multiplier}と\textsf{wheel\_separation\_multiplier}というパラメータを編集することでパラメータ調整を行います．
+この2つのパラメータは\textsf{wheel\_radius}と\textsf{wheel\_separation}に掛かる係数で，デフォルト値は1.0です．
+
+係数パラメータを変更して間接的にパラメータ調整を行う理由は2つあります．
+
+\begin{itemize}
+  \item ロボットの設計値は保持しておきたい．
+  \item \textsf{dynamic\_reconfigure}によってロボット動作中にパラメータを動的に変更できる．
+\end{itemize}
+
+2つ目の理由が特に大きいです．
+ROSには\textsf{dynamic\_reconfigure}\footnote{\url{http://wiki.ros.org/dynamic_reconfigure}}という，パラメータを動的に変更することのできる仕組みが存在します．
+\textsf{dynamic\_reconfigure}を使うことによって，\textsf{diff\_drive\_controller}の実行中にパラメータを変更することができるため，パラメータ調整が効率よく行えるようになります．
+
+\textsf{dynamic\_reconfigure}には\textsf{rqt}プラグインも提供されており，GUIアプリケーションとして利用することができます．
+コード\ref{code:run_dynamic_reconfigure}を実行すると，図\ref{fig:dynamic_reconfigure}のようなアプリケーションが起動します．
+画面左側のメニューバーから実行中のノードを選択すると，そのノードが持つ動的変更可能なパラメータが表示されます．
+スライドバーを編集するかテキストボックスにある数値を直接変更することにより，パラメータを変更することができます．
+
+\textsf{diff\_drive\_controller}では，\textsf{left\_wheel\_radius\_multiplier}，\textsf{right\_wheel\_radius\_multiplier}，\textsf{wheel\_separation\_multipluer}の3つの係数を調整することができます．
+これらのパラメータを調整することで，オドメトリに生じる誤差を最小限にします．
+
+\begin{lstlisting}[language=sh, label=code:run_dynamic_reconfigure, caption=Run \textsf{dynamic\_reconfigure}]
+rosrun rqt_reconfigure rqt_reconfigure
+\end{lstlisting}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[height=100truemm]{images/dynamic_reconfigure.png}
+  \caption{\textsf{dynamic\_reconfigure}}
+  \label{fig:dynamic_reconfigure}
+\end{figure}
+
+\subsection{移動距離に基づいたオドメトリ調整}
+
+ここでは移動距離に基づいたオーソドックスなオドメトリ調整の手法を紹介します．
+オドメトリ調整の手順は単純で，ロボットを一定距離移動させ，実際に移動した距離をメジャー等で測り，オドメトリが示した移動距離と比較するものです．
+
+オドメトリ調整を行う際は，まず直進成分から着手します．
+この理由は，オドメトリの回転成分の式には車輪半径と車輪間距離の両方が関係しているのに対し，直進成分の式では車輪半径のみが関係するからです．
+2つのパラメータを同時にチューニングするよりも，1つずつ行った方が効率がよく，精度も向上します．
+
+ロボットを起動し，ゲームパッド等で手動操縦して，ロボットを数メートル移動させます．
+このとき，ロボットに送る速度指令には旋回成分を含まないようにします．
+ロボットの左右の車輪が等しい半径を持つとは限らないからです．
+直進指令のみを出したにも関わらずロボットの軌道が曲がったりしたら，左右の車輪半径の係数も調整する必要があります．
+
+オドメトリが計算した移動距離を見るには，\textsf{/adamr2/diff\_drive\_controller/odom}トピックを取得します．
+コード\ref{code:echo_adamr2_diff_drive_controller_odom}を実行することで，ターミナルにオドメトリの情報を表示することができます．
+
+\begin{lstlisting}[language=sh, label=code:echo_adamr2_diff_drive_controller_odom, caption=Show Odometry Topic Message]
+rostopic echo /adamr2/diff_drive_controller/odom
+\end{lstlisting}
+
+\subsection{レーザースキャナを利用したオドメトリ調整}
+
+
 
 \end{document}
