@@ -90,9 +90,9 @@ roscore
 rosparam use_sim_time true
 \end{lstlisting}
 
-更にもう1つのターミナルを開き，\textsf{gmapping}を実行します．
+更にもう1つのターミナルを開き，\textsf{slam\_gmapping}を実行します．
 先ほど作成したlaunchファイルを実行します．
-\textsf{gmapping}はデータが送られない限り処理を行わないので，Bagファイルを再生する前に起動しておきます．
+\textsf{slam\_gmapping}はデータが送られない限り処理を行わないので，Bagファイルを再生する前に起動しておきます．
 
 \begin{lstlisting}[language=sh, caption=Run \textsf{gmapping.launch}]
 roslaunch adamr2_slam gmapping.launch
@@ -113,7 +113,7 @@ rosrun rviz rviz
 rosbag play --clock slam.bag
 \end{lstlisting}
 
-Bagファイルの再生が開始され，トピックのデータが配信されると，\textsf{gmapping}が処理を開始します．
+Bagファイルの再生が開始され，トピックのデータが配信されると，\textsf{slam\_gmapping}が処理を開始します．
 \textsf{rviz}で適切にトピックの表示設定を行うと，地図が逐次作成されることがわかります．
 
 地図の作成が終わったら，地図を保存します．
