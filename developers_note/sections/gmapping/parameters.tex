@@ -63,57 +63,125 @@ ROS Wikiより，\textsf{slam\_gmapping}ノードが使用するパラメータ�
   \item \textsf{sigma} \\
     double型，default: 0.05 \\
     レーザーセンサの確率モデルにおける，真の距離からの誤差の標準偏差です．
-    GMappingではレーザーセンサの確率モデルとして，尤度場モデルが使用されています．
-    尤度場モデルはProbabilistic Robotics\cite{thrun2005probabilistic}にて詳しく解説されています．
   \item \textsf{lsigma} \\
     double型，default: 0.075 \\
     レーザーセンサの確率モデルにおける，ランダム誤差の発生確率です．
 \end{itemize}
 
+GMappingではレーザーセンサの確率モデルとして，尤度場モデルが使用されています．
+尤度場モデルはProbabilistic Robotics\cite{thrun2005probabilistic}にて詳しく解説されています．
+
 \subsection{スキャンマッチングに関するパラメータ}
 
 \begin{itemize}
-  \item \textsf{kernelSize}
-  \item \textsf{lstep}
-  \item \textsf{astep}
-  \item \textsf{iterations}
-  \item \textsf{ogain}
-  \item \textsf{lskip}
-  \item \textsf{minimumScore}
-  \item \textsf{llsamplerange}
-  \item \textsf{llsamplestep}
-  \item \textsf{lasamplerange}
-  \item \textsf{lasamplestep}
+  \item \textsf{kernelSize} \\
+    double型，default: 1.0 \\
+    スキャンマッチングの探索範囲です．
+  \item \textsf{lstep} \\
+    double型，default: 0.05 \\
+    スキャンマッチングにおける，並進方向の初期探索ステップです．
+  \item \textsf{astep} \\
+    double型，default: 0.05 \\
+    スキャンマッチングにおける，回転方向の初期探索ステップです．
+  \item \textsf{iterations} \\
+    int型，default:5 \\
+    スキャンマッチング処理の繰り返し回数です．
+  \item \textsf{ogain} \\
+    double型，default: 3.0 \\
+    パーティクルの正規化の際，重みを平滑化してリサンプリングによる影響を平滑化するためのゲインです．
+  \item \textsf{lskip} \\
+    int型，default: 0 \\
+    各スキャンにおいてスキップするレーザーの数です．デフォルト値は0なので，すべてのレーザーが計算に使用されます．
+  \item \textsf{minimumScore} \\
+    double型，default: 0.0 \\
+    スキャンマッチングの最低スコアです．マッチングスコアがこの値以下になったとき，マッチングに失敗したとみなします．
+  \item \textsf{llsamplerange} \\
+    double型，default: 0.01 \\
+    尤度計算の際に使用される，並進方向のサンプリング範囲です．
+  \item \textsf{llsamplestep} \\
+    double型，default: 0.01 \\
+    尤度計算の際に使用される，並進方向のサンプリング単位です．
+  \item \textsf{lasamplerange} \\
+    double型，default: 0.005 \\
+    尤度計算の際に使用される，回転方向のサンプリング範囲です．
+  \item \textsf{lasamplestep} \\
+    double型，default: 0.005 \\
+    尤度計算の際に使用される，回転方向のサンプリング単位です．
 \end{itemize}
+
+\textsf{llsamplerange}，\textsf{llsamplestep}，\textsf{lasamplerange}，\textsf{lasamplestep}の4つのパラメータのデフォルト値は，地図の分解能が\SI{5}{cm}のときの設定値のようです．
+また，ソースコードを見る限り，\textsf{slam\_gmapping}においてこれらの値は使用されていません．
 
 \subsection{状態遷移モデルに関するパラメータ}
 
 \begin{itemize}
-  \item \textsf{srr}
-  \item \textsf{srt}
-  \item \textsf{str}
-  \item \textsf{stt}
+  \item \textsf{srr} \\
+    double型，default: 0.1 \\
+    ロボットの並進によって生じる，並進方向の誤差の標準偏差です．
+  \item \textsf{srt} \\
+    double型，default: 0.2 \\
+    ロボットの回転によって生じる，並進方向の誤差の標準偏差です．
+  \item \textsf{str} \\
+    double型，default: 0.1 \\
+    ロボットの並進によって生じる，回転方向の誤差の標準偏差です．
+    \item \textsf{stt} \\
+    double型，default: 0.2 \\
+    ロボットの回転によって生じる，回転方向の誤差の標準偏差です．
 \end{itemize}
+
+これら4つのパラメータは，オドメトリに基づいた状態遷移モデルにおいて使用される数値です．
+オドメトリに基づいた状態遷移モデルについては，Probabilistic Robotics\cite{thrun2005probabilistic}に詳細が記載されています．
 
 \subsection{パーティクルフィルタに関するパラメータ}
 
 \begin{itemize}
-  \item \textsf{linearUpdate}
-  \item \textsf{angularUpdate}
-  \item \textsf{temporalUpdate}
-  \item \textsf{resampleThreshold}
-  \item \textsf{particles}
+  \item \textsf{linearUpdate} \\
+    double型，default: 1.0 \\
+    パーティクルフィルタの更新が行われるために必要なロボットの並進方向の移動距離です．
+    ロボットがこれだけ移動しないと，フィルタのアップデートは行われません．
+  \item \textsf{angularUpdate} \\
+    double型，default: 0.5 \\
+    パーティクルフィルタの更新が行われるために必要なロボットの回転方向の移動距離です．
+    ロボットがこれだけ移動しないと，フィルタのアップデートは行われません．
+  \item \textsf{temporalUpdate} \\
+    double型，default: -1.0 \\
+    時間経過によるフィルタアップデートを許可し，その周期を指定します．
+    ロボットが一定距離を移動しなくても，このパラメータで指定した時間が経過したらフィルタのアップデートが行われます．
+    マイナスの値が設定されていれば，時間経過によるフィルタアップデートは行われなくなります．
+  \item \textsf{resampleThreshold} \\
+    double型，default: 0.5 \\
+    リサンプリングを行うかどうかを決定するための閾値です．
+  \item \textsf{particles} \\
+    int型，default: 30 \\
+    パーティクルフィルタで使用するパーティクルの数です．
+    GMappingではパーティクルの数は固定値です．
 \end{itemize}
 
 \subsection{地図に関するパラメータ}
 
 \begin{itemize}
-  \item \textsf{xmin}
-  \item \textsf{ymin}
-  \item \textsf{xmax}
-  \item \textsf{ymax}
-  \item \textsf{delta}
-  \item \textsf{occ\_thresh}
+  \item \textsf{xmin} \\
+    double型，default: -100.0 \\
+    地図のX方向の最小値の初期値です．
+  \item \textsf{ymin} \\
+    double型，default: -100.0 \\
+    地図のY方向の最小値の初期値です．
+  \item \textsf{xmax} \\
+    double型，default: 100.0 \\
+    地図のX方向の最大値の初期値です．
+  \item \textsf{ymax} \\
+    double型，default: 100.0 \\
+    地図のY方向の最大値の初期値です．
+  \item \textsf{delta} \\
+    double型，default: 0.05 \\
+    地図の分解能です．占有格子地図のグリッド1つあたりの長さをメートル単位で指定します．
+    デフォルト値は0.05なので，グリッド1つあたりの長さは\SI{5}{cm}となります．
+  \item \textsf{occ\_thresh} \\
+    double型，default: 0.25 \\
+    占有格子地図における，障害物の閾値です．
+    この値以上の値を持つセルを障害物とみなします．
 \end{itemize}
+
+地図の範囲を表すパラメータに小さい値を指定していたとしても，地図のサイズはロボットの移動とフィルタのアップデートに伴って更新されます．
 
 \end{document}
