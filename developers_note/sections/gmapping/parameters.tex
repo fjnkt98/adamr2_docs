@@ -1,0 +1,119 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+本章では\textsf{slam\_gmapping}のパラメータチューニングについて説明します．
+
+\textsf{slam\_gmapping}を使って正確な地図を作成するには，ロボットの仕様やセンサの特性，ロボットの動作環境等に合わせた適切なパラメータを設定する必要があります．
+しかし，パラメータチューニングを行うためには，GMappingがどのようなアルゴリズムで処理を行っているかをある程度把握していなければなりません．
+本章では\textsf{slam\_gmapping}のパラメータチューニングを行うための情報について，GMappingのアルゴリズムやSLAMの概念を交えて解説します．
+\ref{sec:gmapping_parameters}では，\textsf{slam\_gmapping}ノードが使用しているパラメータの簡単な説明を行います．
+\ref{sec:gmapping_algorithm}でGMappingのアルゴリズムについて簡単な解説を行います．
+\ref{sec:gmapping_tuning}では，\ref{sec:gmapping_parameters}，\ref{sec:gmapping_algorithm}を踏まえて，\textsf{slam\_gmapping}のパラメータをどのように調整すればよいかを説明します．
+
+尚，本章で取り扱う\textsf{slam\_gmapping}のバージョンは1.4.2，本体となるGMappingのバージョンは0.2.1です．
+また，本章の解説は筆者が理解できた範囲での説明となります．
+間違いや説明抜け等が存在するため，あくまで参考程度にするようにしてください．
+
+\section{\textsf{slam\_gmapping}のパラメータ}
+\label{sec:gmapping_parameters}
+
+ROS Wikiより，\textsf{slam\_gmapping}ノードが使用するパラメータを列挙します．
+各パラメータは使用目的によっていくつかのグループに分類することができます．
+
+\subsection{ROSに関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{base\_frame} \\
+    string型，default: \textsf{''base\_link''} \\
+    ロボットのベースリンクの名前を指定します．ADAMR2では\textsf{base\_footprint}となります．
+  \item \textsf{map\_frame}\\
+    string型，default: \textsf{''map''} \\
+    地図のフレーム名を指定します．特別なことが無い限りはデフォルト値のままで良いでしょう．
+  \item \textsf{odom\_frame}\\
+    string型，default: \textsf{''odom''} \\
+    オドメトリ座標系のフレーム名を指定します．\textsf{diff\_drive\_controller}が提供するオドメトリ座標系は\textsf{odom}という名前なので，これを指定します．
+  \item \textsf{map\_update\_interval}\\
+    double型，default: 5.0 \\
+    \textsf{map}トピックを配信する周期を秒単位で指定します．
+    デフォルトでは5秒おきに\textsf{map}トピックが配信されます．
+  \item \textsf{transform\_publish\_period}\\
+    double型，default: 0.05 \\
+    \textsf{slam\_gmapping}が提供する\textsf{map}→\textsf{odom}のTF変換の配信周期を指定します．
+    デフォルトでは0.05秒おき，つまり\SI{20}{Hz}でTFが配信されます．
+\end{itemize}
+
+\subsection{レーザースキャンに関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{maxRange} \\
+    double型，default: None\\
+    ロボットが使用するレーザースキャナの最大測定距離です．
+    この範囲を超えたデータはすべて破棄されます．
+    このパラメータが設定されていない場合は，\textsf{/scan}トピックに含まれるデータを代わりに使用します．
+  \item \textsf{maxUrange} \\
+    double型，default: 80.0 \\
+    地図作成のために使われるスキャンデータの最大値です．
+    レーザースキャンの範囲内において，障害物のない領域が地図上で自由空間として表示されるようにするには，
+    \textsf{maxUrange} $<$ センサの最大測定範囲 $\leqq$ \textsf{maxRange}と設定する必要があります．
+  \item \textsf{throttle\_scans} \\
+    int型，default: 1 \\
+    n回おきにスキャンを処理します．デフォルト値は1なので，毎回スキャンを処理します．
+  \item \textsf{sigma} \\
+    double型，default: 0.05 \\
+    レーザーセンサの確率モデルにおける，真の距離からの誤差の標準偏差です．
+    GMappingではレーザーセンサの確率モデルとして，尤度場モデルが使用されています．
+    尤度場モデルはProbabilistic Robotics\cite{thrun2005probabilistic}にて詳しく解説されています．
+  \item \textsf{lsigma} \\
+    double型，default: 0.075 \\
+    レーザーセンサの確率モデルにおける，ランダム誤差の発生確率です．
+\end{itemize}
+
+\subsection{スキャンマッチングに関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{kernelSize}
+  \item \textsf{lstep}
+  \item \textsf{astep}
+  \item \textsf{iterations}
+  \item \textsf{ogain}
+  \item \textsf{lskip}
+  \item \textsf{minimumScore}
+  \item \textsf{llsamplerange}
+  \item \textsf{llsamplestep}
+  \item \textsf{lasamplerange}
+  \item \textsf{lasamplestep}
+\end{itemize}
+
+\subsection{状態遷移モデルに関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{srr}
+  \item \textsf{srt}
+  \item \textsf{str}
+  \item \textsf{stt}
+\end{itemize}
+
+\subsection{パーティクルフィルタに関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{linearUpdate}
+  \item \textsf{angularUpdate}
+  \item \textsf{temporalUpdate}
+  \item \textsf{resampleThreshold}
+  \item \textsf{particles}
+\end{itemize}
+
+\subsection{地図に関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{xmin}
+  \item \textsf{ymin}
+  \item \textsf{xmax}
+  \item \textsf{ymax}
+  \item \textsf{delta}
+  \item \textsf{occ\_thresh}
+\end{itemize}
+
+\end{document}
