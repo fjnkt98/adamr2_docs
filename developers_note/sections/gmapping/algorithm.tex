@@ -6,4 +6,45 @@
 \section{GMappingのアルゴリズムの概要}
 \label{sec:gmapping_algorithm}
 
+GMappingは格子ベースの地図を扱うベイズフィルタ系のSLAMアルゴリズムです．
+FastSLAM2.0のアプローチを採用しており，スキャンマッチングによってオドメトリを修正することにより，少ないパーティクルでも良好な推定を行うことができるのが特徴です．
+
+\subsection{GMappingが扱う問題}
+
+初期位置$\bm{x}_{0}$，観測の時系列リスト$z_{1:t}$，オドメトリ情報$u_{1:t}$が得られたとき，ロボットの軌跡$\bm{x}_{1:t}$と地図$m$の結合確率分布を求めます．
+\footnote{論文\cite{Gmapping}に書かれている数式と少し異なりますが，表している事象は同じです．}
+
+\begin{equation}
+  p(\bm{x_{1:t}}, m \mid \bm{x}_{0}, z_{1:t}, u_{1:t})
+  \label{eq:target_distribution}
+\end{equation}
+
+ここで，$\bm{x}_{t}$はロボットの姿勢(Pose)を表すベクトルであり，$\bm{x}_{x} = (x_{t}, y_{t}, \theta_{t})^T$です．
+$z_{t}$は時刻$t$で得られた観測の情報で，GMappingではスキャンデータが用いられます．
+$u_{t}$は，時刻$t-1$から時刻$t$までにロボットが移動した距離を，ホイールオドメトリで求めた情報です．
+また，$1:t$の表記は時刻$1$から時刻$t$までの時系列のリストを表しています．
+
+SLAMの目的は式\ref{eq:target_distribution}の確率分布を求めることにあります．
+確率分布を求めることができれば，確率密度が一番高いところにロボットがいるのが尤もらしいと言えるため，結果的にロボットの姿勢を求めることに繋がります．
+
+しかし，式\ref{eq:target_distribution}の確率分布がどのような形状をしているのかは誰にもわかりません．
+従って，式\ref{eq:target_distribution}を直接求めることはほぼ不可能に近い難問になります．
+そのため，何らかの近似や仮定を用いることによって確率分布を求めることになります．
+その近似手法の1つが，GMappingでも用いられているパーティクルフィルタです．
+
+GMappingではRao-Blackwellizationと呼ばれる因数分解を適用して，式\ref{eq:target_distribution}の確率分布を分解しています．
+
+\begin{equation}
+  \begin{split}
+    &p(\bm{x_{1:t}}, m \mid \bm{x}_{0}, z_{1:t}, u_{1:t}) \\
+    &= p(m \mid \bm{x}_{1:t}, \bm{x}_{0}, u_{1:t}, z_{1:t}) \cdot p(\bm{x}_{1:t} \mid \bm{x}_{0}, u_{1:t}, z_{1:t}) \\
+    &= p(m \mid \bm{x}_{0:t}, z_{1:t}) \cdot p(\bm{x}_{1:t} \mid z_{1:t}, u_{1:t})
+  \end{split}
+  \label{eq:rao_blackwellized_distribution}
+\end{equation}
+
+式\ref{eq:target_distribution}にRao-Blackwellizationを適用したのが式\ref{eq:target_distribution}です．
+式\ref{eq:rao_blackwellized_distribution}を見ると，この問題はロボットの姿勢の分布$p(\bm{x}_{1:t} \mid z_{1:t}, u_{1:t})$を求める問題と，地図$p(m \mid \bm{x}_{0:t}, z_{1:t})$を求める問題に分解して考えられるようになります．
+
+
 \end{document}
