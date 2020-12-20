@@ -1,0 +1,59 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+本章ではADAMR2の起動方法について解説します．
+ADAMR2はゲームパッドによる手動操縦，SLAMによる地図作成，および自律走行を実行するためのアプリケーションを備えています．
+各種機能は，パッケージに含まれるlaunchファイルを起動することで実行することができます．
+
+\section{ラジコン操縦の手順}
+\label{sec:teleoperation}
+
+ゲームパッドを用いた手動遠隔操縦を行うためには，まずADAMR2のモータードライバを起動状態にします．
+以下の手順に従って，ロボットのハードウェアをセットアップしてください．
+尚，モータードライバとモータとの接続は既に済んでいるものとします．
+
+\begin{enumerate}
+  \item 図\ref{fig:electrical_connection_diagram}を参考にして電装部品の接続を行う．
+  \item モータードライバとPCをUSBケーブルで接続する．
+  \item 電源スイッチをONにし．電源基板およびモータードライバに電源を供給する．
+  \item PCからモータードライバのデバイスファイルが見えるかどうかを確認する．
+\end{enumerate}
+
+モータードライバのデバイスファイルが存在するかどうかを確認するには，コード\ref{code:check_motor_driver_device_file}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:check_motor_driver_device_file, caption=Check the Device File of the Motor Driver]
+$ ls /dev/ttyACM*
+/dev/ttyACM0
+\end{lstlisting}
+
+デフォルトでは，モータードライバTF-2MD3-R6は\textsf{/dev/ttyACM0}として認識されます．
+デバイスファイルが見つからなかった場合は，USBケーブルを繋ぎ直すか，電源を再投入する等してください．
+
+モータードライバがPCから認識可能になったら，launchファイルを起動して走行可能な状態にします．
+ADAMR2を走行可能な状態にするには，新しいターミナルを開き，コード\ref{code:launch_controller_for_teleoperation}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:launch_controller_for_teleoperation, caption=Launch \textsf{adamr2\_control.launch}]
+roslaunch adamr2_control adamr2_control.launch
+\end{lstlisting}
+
+次にゲームパッドを使用可能にします．
+ゲームパッドをPCに接続し，新しいターミナルを開いてコード\ref{code:launch_gamepad_for_teleoperation}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:launch_gamepad_for_teleoperation, caption=Launch \textsf{joy.launch}]
+roslaunch adamr2_bringup joy.launch
+\end{lstlisting}
+
+これで準備は整いました．
+緊急停止スイッチを解除し，ゲームパッドのAボタン(もしくはBボタン)を押しながら左アナログジョイスティックを動かすことで，ロボットをラジコン操縦することができます．
+
+尚，ロボットを動作させるときは電気的トラブルに十分注意してください．
+初めてロボットを起動する場合は，鉛蓄電池を直接繋ぐのではなく，電流保護機能付きの直流安定化電源を使用して，必ず動作テストを行ってから実験を行ってください．
+\footnote{筆者は一度やらかして電源基板とドライバ基板を焼いています．}
+
+ロボットの操作を終了するには，起動したlaunchファイルを終了すればOKです．
+各launchファイルを実行しているターミナルで\textsf{Ctrl+C}を入力することでプロセスを終了することができます．
+launchファイルを終了させたら，ロボットの電源スイッチをOFFにして電源を切ります．
+
+\end{document}

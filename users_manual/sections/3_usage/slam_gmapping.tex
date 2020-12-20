@@ -1,0 +1,67 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{SLAM実験の手順}
+
+ADAMR2を使って\textsf{slam\_gmapping}を用いたSLAMによる地図作成を行うことができます．
+SLAMで地図作成実験を行うときは，以下の2つのシチュエーションが考えられます．
+
+\begin{itemize}
+  \item オンラインSLAM：ロボットを走行させながらリアルタイムに地図作成を行う
+  \item オフラインSLAM：ロボットの走行データを保存して，それを再生しながら地図作成を行う
+\end{itemize}
+
+本節では2つのシチュエーションに分けて，SLAMの実行手順を説明します．
+
+\subsection{オンラインSLAM}
+
+SLAMを行うには，ロボットのオドメトリ情報とレーザースキャン情報が必要になります．
+オドメトリ情報はモータードライバが提供してくれるので，あとはレーザースキャン情報を追加すれば良いということになります．
+
+まずは\ref{sec:teleoperation}で説明したように，ロボットを走行可能な状態にします．
+そして，RPLiDARをPCに接続し，新しいターミナルを開いてコード\ref{code:launch_rplidar_for_slam}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:launch_rplidar_for_slam, caption=Launch \textsf{rplidar.launch}]
+roslaunch adamr2_bringup rplidar.launch
+\end{lstlisting}
+
+RPLiDARが起動して，レーザースキャンのデータを取得できるようになれば準備完了です．
+あとは\textsf{slam\_gmapping}を起動するlaunchファイルを実行します．
+新しいターミナルを開き，コード\ref{code:launch_gmapping_for_slam}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:launch_gmapping_for_slam, caption= Launch \textsf{gmapping.launch}]
+roslaunch adamr2_slam gmapping.launch situation:=real
+\end{lstlisting}
+
+注意点として，実験時のシチュエーションを引数に指定しなければなりません．
+これは，GazeboシミュレーションでのSLAM実験と，実機による実験とで\textsf{slam\_gmapping}のパラメータを切り替えるための設定です．
+\textsf{situation}引数を設定しないと，\textsf{gmapping.launch}を実行することはできません．
+
+\textsf{gmapping.launch}を実行すると，\textsf{slam\_gmapping}ノードと\textsf{rviz}が起動します．
+\textsf{rviz}の画面を確認して，トピック等に抜けがないかをチェックしてください．
+特にRPLiDARは電流不足によるデータの配信ミスが多いです．
+
+トピックに問題が無ければ，ゲームパッドによってロボットを操縦します．
+ロボットの移動に従って，地図がどんどん作成されていくのが確認できます
+
+地図の作成が終わったら，作成した地図を保存しておきます．
+地図の保存は\textsf{map\_server}パッケージの\textsf{map\_saver}ノードによって行えます．
+\footnote{\textsf{map\_server}パッケージには\textsf{map\_server}ノードと\textsf{map\_saver}ノードが存在します．名前が似ていて非常に紛らわしいので，間違えないように注意してください．}
+
+地図を保存したいディレクトリに移動し，コード\ref{code:save_map}を実行します．
+
+\begin{lstlisting}[language=sh, label=code:save_map, caption=Save Map]
+rosrun map_server map_saver
+\end{lstlisting}
+
+コード\ref{code:save_map}を実行すると，カレントディレクトリに\textsf{map.pgm}と\textsf{map.yaml}の2つのファイルが生成されます．
+
+地図の保存が完了したら，ロボットを終了させます．
+
+\subsection{オフラインSLAM}
+
+
+
+\end{document}
