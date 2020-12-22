@@ -11,6 +11,8 @@ FastSLAM2.0のアプローチを採用しており，スキャンマッチング
 
 \subsection{GMappingが扱う問題}
 
+\subsubsection{求める解}
+
 ロボットの初期姿勢$\bm{x}_{0}$，観測の時系列リスト$z_{1:t}$，オドメトリ情報$u_{1:t}$が得られたとき，ロボットの軌跡$\bm{x}_{1:t}$と地図$m$の結合確率分布を求めます．
 \footnote{論文\cite{Gmapping}に書かれている数式と少し異なりますが，表している事象は同じです．}
 
@@ -32,6 +34,10 @@ SLAMの目的は式\ref{eq:target_distribution}の確率分布を求めること
 そのため，何らかの近似や仮定を用いることによって確率分布を求めることになります．
 その近似手法の1つが，GMappingでも用いられているパーティクルフィルタです．
 
+パーティクルフィルタは連続な関数である確率分布を，重みを持ったパーティクルの集合として離散的に近似する手法です．
+確率分布の内の確率密度が高い部分が，重みの大きいパーティクルに対応します．
+パーティクルの数を無限大に近づけると元の確率分布に近づきます．
+
 % TODO: パーティクルフィルタの概要の説明．1次元のグラフかなんかを書いて説明する
 
 GMappingではRao-Blackwellizationと呼ばれる因数分解を適用して，式\ref{eq:target_distribution}の確率分布を分解しています．
@@ -45,128 +51,82 @@ GMappingではRao-Blackwellizationと呼ばれる因数分解を適用して，�
   \label{eq:rao_blackwellized_distribution}
 \end{equation}
 
-式\ref{eq:target_distribution}にRao-Blackwellizationを適用したのが式\ref{eq:target_distribution}です．
+式\ref{eq:target_distribution}にRao-Blackwellizationを適用したのが式\ref{eq:rao_blackwellized_distribution}です．
 式\ref{eq:rao_blackwellized_distribution}を見ると，この問題はロボットの姿勢の分布$p(\bm{x}_{1:t} \mid z_{1:t}, u_{1:t})$を求める問題と，地図$p(m \mid \bm{x}_{0:t}, z_{1:t})$を求める問題に分解して考えられるようになります．
 
-\subsection{地図の表現形式}
+\subsubsection{SLAMにおける用語}
 
-ROSにおける占有格子地図の形式は\textsf{nav\_msgs/OccupancyGrid}\footnote{\url{http://docs.ros.org/en/melodic/api/nav_msgs/html/msg/OccupancyGrid.html}}で定義されています．
-コード\ref{code:occupancy_grid_definition}にメッセージの定義を引用します．
+式\ref{eq:target_distribution}で示すような，SLAMで求める確率分布を「目標分布」または「信念(信念分布)」と呼びます．\cite{上田2019}
+パーティクルフィルタを含むベイズフィルタの演算は単純なもので，まずロボットの移動の情報をもとに時刻$t-1$の信念分布を遷移させ，その後センサ等の観測情報を用いて時刻$t$の信念を確定させる，という処理を繰り返します．
 
-\begin{lstlisting}[label=code:occupancy_grid_definition, caption=Message Difinition of \textsf{nav\_msgs/OccupancyGrid}]
-# This represents a 2-D grid map, in which each cell represents the probability of
-# occupancy.
-
-Header header 
-
-#MetaData for the map
-MapMetaData info
-
-# The map data, in row-major order, starting with (0,0).  Occupancy
-# probabilities are in the range [0,100].  Unknown is -1.
-int8[] data
-\end{lstlisting}
-
-\textsf{nav\_msgs/OccupancyGrid}は地図のメタデータとセルのデータを持ちます．
-
-メタデータは\textsf{nav\_msgs/MapMetaData}\footnote{\url{http://docs.ros.org/en/melodic/api/nav_msgs/html/msg/MapMetaData.html}}で定義されています．
-コード\ref{code:map_metadata_definition}にメタデータの定義を引用します．
-
-\begin{lstlisting}[label=code:map_metadata_definition, caption=Message Definition of \textsf{nav\_msgs/MapMetaData}]
-# This hold basic information about the characterists of the OccupancyGrid
-
-# The time at which the map was loaded
-time map_load_time
-# The map resolution [m/cell]
-float32 resolution
-# Map width [cells]
-uint32 width
-# Map height [cells]
-uint32 height
-# The origin of the map [m, m, rad].  This is the real-world pose of the
-# cell (0,0) in the map.
-geometry_msgs/Pose origin
-\end{lstlisting}
-
-地図は1つのセルが-1から100までの数値を取る2次元のマトリクスとして定義され，そのデータは行優先順(Row-Major Order)で1次元配列として保存されます．
+ロボットの移動の情報をもとに信念分布を遷移させるときに使う確率モデルを「移動モデル」\cite{thrun2005probabilistic}もしくは「状態遷移モデル」\cite{上田2019}と呼びます．
+状態遷移モデルはロボットの移動に含まれるノイズやバイアスを確率的に扱うモデルで，式\ref{eq:motion_model}で表されます．
+また，状態遷移モデルによって遷移させられた信念分布を「提案分布」もしくは「事前分布」と呼びます．
+Probabilistic Roboticsでは，状態遷移モデルの種類として速度動作モデル(\textsf{motion\_model\_velocity})とオドメトリ動作モデル(\textsf{motion\_model\_odometry})が紹介されています．
 
 \begin{equation}
-  m_{t} = [m_{t, 0}, m_{t, 1},  \ldots, m_{t, N}]
+  p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})
+  \label{eq:motion_model}
 \end{equation}
 
-地図の幅及び高さはメタデータ内の\textsf{width}，\textsf{height}にそれぞれ記録されます．
-セルの原点[0, 0]であり，地図の一番左下にあります．
-このセルの原点[0, 0]が，グローバル座標系のどの位置，どの角度に対応するかを示すのが，メタデータ内の\textsf{origin}です．
-地図が更新されてサイズが大きくなったとき，この\textsf{origin}と\textsf{width}，\textsf{height}を更新することで，1次元配列で2次元地図を表現しています．
+状態遷移モデルによって信念分布を遷移した後，観測情報を用いて時刻$t$の信念分布を確定させる際に使う確率モデルを「計測モデル」\cite{thrun2005probabilistic}「観測モデル」\cite{上田2019}と呼びます．
+観測モデルは式\ref{eq:measurement_model}で表されます．
+提案分布に観測モデルを適用してできた分布を「目標分布」もしくは「事後分布」と呼びます．
+Probabilistic Roboticsでは，LiDAR等のレーザーセンサのための観測モデルの種類としてビームモデル(\textsf{beam\_range\_finder\_model})と尤度場モデル(\textsf{likelihood\_field\_model})が紹介されています．
 
-セルの値が$-1$のとき未知の領域，$0$のとき自由領域，$100$のとき障害物領域を示します．
-障害物がある確率に従って0から100までの値を取ります．
+\begin{equation}
+  p(z_{t} \mid \bm{x}_{t}, m)
+  \label{eq:measurement_model}
+\end{equation}
 
-\subsection{レーザースキャンの表現形式}
+\subsection{問題の定式化}
 
-ROSにおけるレーザースキャンの形式は\textsf{sensor\_msgs/LaserScan}\footnote{\url{http://docs.ros.org/en/api/sensor_msgs/html/msg/LaserScan.html}}で定義されています．
-コード\ref{code:laserscan_definition}にメッセージの定義を引用します．
+パーティクルフィルタにおいて，$i$番目のパーティクルの重み$w^{(i)}$は式\ref{eq:particle_weight_equation}で更新されます．
 
-\begin{lstlisting}[label=code:laserscan_definition, caption=Message Definition of \textsf{sensor\_msgs/LaserScan}]
-# Single scan from a planar laser range-finder
-#
-# If you have another ranging device with different behavior (e.g. a sonar
-# array), please find or create a different message, since applications
-# will make fairly laser-specific assumptions about this data
+\begin{equation}
+  w^{(i)} = \frac{p(\bm{x}_{1:t}^{(i)} \mid z_{1:t}, u_{1:t})}{\pi(\bm{x}_{1:t}^{(i)} \mid z_{1:t}, u_{1:t})}
+  \label{eq:particle_weight_equation}
+\end{equation}
 
-Header header            # timestamp in the header is the acquisition time of 
-                          # the first ray in the scan.
-                          #
-                          # in frame frame_id, angles are measured around 
-                          # the positive Z axis (counterclockwise, if Z is up)
-                          # with zero angle being forward along the x axis
-                          
-float32 angle_min        # start angle of the scan [rad]
-float32 angle_max        # end angle of the scan [rad]
-float32 angle_increment  # angular distance between measurements [rad]
+式\ref{eq:particle_weight_equation}右辺の分子は事後分布，分母は提案分布です．
+事後分布と提案分布の差が小さい程フィルタの性能は上がりますが，提案分布$\pi$が事後分布と一致することはまずありません．
+また，式\ref{eq:particle_weight_equation}のままだと新しい観測が得られる度に各パーティクルの軌跡の重みを評価しなければならないため，時間が経過するにつれて計算負荷は増大していってしまいます．
+ここで，提案分布が式\ref{eq:proposal_assumption}に従うと仮定します．
 
-float32 time_increment   # time between measurements [seconds] - if your scanner
-                          # is moving, this will be used in interpolating position
-                          # of 3d points
-float32 scan_time        # time between scans [seconds]
+\begin{equation}
+  \pi(\bm{x}_{1:t} \mid z_{1:t}, u_{1:t}) = \pi(\bm{x}_{t} \mid \bm{x}_{1:t-1}, z_{1:t}, u_{1:t}) \cdot \pi(\bm{x}_{1:t-1} \mid z_{1:t-1}, u_{1:t-1})
+  \label{eq:proposal_assumption}
+\end{equation}
 
-float32 range_min        # minimum range value [m]
-float32 range_max        # maximum range value [m]
+式\ref{eq:proposal_assumption}を使って式\ref{eq:particle_weight_equation}を逐次式に変換すると，
 
-float32[] ranges         # range data [m] (Note: values < range_min or > range_max should be discarded)
-float32[] intensities    # intensity data [device-specific units].  If your
-                          # device does not provide intensities, please leave
-                          # the array empty.
-\end{lstlisting}
+\begin{equation}
+  \begin{split}
+    &w^{(i)} = \frac{p(\bm{x}_{1:t}^{(i)} \mid z_{1:t}, u_{1:t})}{\pi(\bm{x}_{1:t}^{(i)} \mid z_{1:t}, u_{1:t})} \\
+    &= \eta \frac{p(z_{1:t} \mid \bm{x}_{1:t}^{(i)}, z_{1:t-1}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{\pi(\bm{x}_{t}^{(i)} \mid \bm{x}_{1:t-1}^{(i)}, z_{1:t}, u_{1:t})} \cdot \frac{p(\bm{x}_{1:t-1}^{(i)} \mid z_{1:t-1}, u_{1:t-1})}{\pi(\bm{x}_{1:t-1}^{(i)} \mid z_{1:t-1}, u_{1:t-1})} \\
+    &= \eta \frac{p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{\pi(\bm{x}_{t}^{(i)} \mid \bm{x}_{1:t-1}^{(i)}, z_{1:t}, u_{1:t}}) w_{t-1}^{(i)}
+  \end{split}
+  \label{eq:sequential_particle_weight_equation}
+\end{equation}
 
-レーザースキャンの各距離データは1次元配列に格納されています．
+\noindent
+となります．ただし，$\eta$は式\ref{eq:sequential_particle_weight_equation}の2段目でベイズの定理を適用して確率分布を分解したときに出てきた正規化因子です．
 
-\begin{figure}[ht]
-  \centering
-  \begin{tikzpicture}
-    %\draw[help lines, step=0.5] (-3, -3) grid (3, 3);
-    
-    % Range
-    \foreach \r in {-120, -105, ..., 120}
-      \draw[rotate around={\r: (0, 0)}] (0, 0) -- (0, 2);
-    
-    \draw (1.5, 1.5) node[right]{\textsf{range[i]}};
+式\ref{eq:sequential_particle_weight_equation}を使ってパーティクルを更新するためには，提案分布$\pi$からドローしなければなりません．
+パーティクルフィルタの性能は提案分布$\pi$で決まり，$\pi$が目標分布に近ければフィルタの性能は向上します．
 
-    \draw[blue, thick, rotate around={-120: (0, 0)}] (0, 0) -- (0, 2.5) node[right]{\textsf{angle\_min}};
-    \draw[blue, thick, rotate around={120: (0, 0)}] (0, 0) -- (0, 2.5) node[left]{\textsf{angle\_max}};
+FastSLAM1.0のような従来型のアルゴリズムでは，この提案分布$\pi$には状態遷移モデル$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$が使用されます．
+提案分布に状態遷移モデルを使うと，パーティクルの重みの演算が観測モデル$p(z_{t} \mid m, \bm{x}_{t})$だけで行えます．
+実際，式\ref{eq:sequential_particle_weight_equation}の$\pi$に状態遷移モデルを代入すると，式\ref{eq:sequential_weight_equation_fastslam1.0}のようになります．
 
-    % Origin
-    \draw (0, 0) node[below]{0};
-    % X Axis
-    \draw[->, >=stealth, very thick, red] (0, 0) -- (0, 3) node[above]{$x$};
-    % Y Axis
-    \draw[->, >=stealth, very thick, green] (0, 0) -- (-3, 0) node[left]{$y$};
-
-    \draw[thick, ->, rotate around={-30: (0, 0)}] (1.5, 0) arc [start angle=0, delta angle=15, radius=1.5] node[below right]{\textsf{angle\_increment}};
-  \end{tikzpicture}
-  \caption{\textsf{sensor\_msgs/LaserScan}}
-  \label{fig:sensor_msgs_laserscan}
-\end{figure}
+\begin{equation}
+  \begin{split}
+    &w_{t}^{(i)} = \eta \frac{p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{\pi(\bm{x}_{t}^{(i)} \mid \bm{x}_{1:t-1}^{(i)}, z_{1:t}, u_{1:t}}) w_{t-1}^{(i)} \\
+    &= \eta \frac{p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{p(\bm{x}_{t}^{(i)} \mid \bm{x}_{1:t-1}^{(i)}, z_{1:t}, u_{1:t}}) w_{t-1}^{(i)} \\
+    &= \eta p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) w_{t-1}^{(i)}
+  \end{split}
+  \label{eq:sequential_weight_equation_fastslam1.0}
+\end{equation}
 
 \subsection{オドメトリ状態遷移モデル}
 
