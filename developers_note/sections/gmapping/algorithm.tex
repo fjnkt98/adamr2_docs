@@ -128,6 +128,114 @@ FastSLAM1.0のような従来型のアルゴリズムでは，この提案分布
   \label{eq:sequential_weight_equation_fastslam1.0}
 \end{equation}
 
+ここで，センサによる観測情報の精度が，オドメトリよりも十分に正確な場合を考えます．
+このとき，観測モデルの意味のある領域は，オドメトリ動作モデルの範囲に比べて非常に狭くなってしまいます．
+1次元で表すと，図\ref{fig:meaningful_area_of_likelihood}のようになります．
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    % X Axis
+    \draw[->,>=stealth,semithick] (0, 0) -- (6, 0) node[right]{$x$};
+    % Y Axis
+    \draw[->,>=stealth,semithick] (0, 0) -- (0, 4) node[above]{$y$};
+    % Origin
+    \draw (0, 0) node[below left]{O};
+
+    % Motion Model Function
+    \draw[red, thick, domain=0:6] plot(\x, {exp(-(\x - 3) * (\x - 3) / 2 / 2.0) / sqrt(2*pi*2.0)}) node[right]{};
+    % Measurement Model Function
+    \draw[thick, domain=1.5:2.5, samples=100] plot(\x, {exp(-(\x - 2) * (\x - 2) / 2 / 0.01) / sqrt(2*pi*0.01)}) node[right]{};
+    
+    \draw (2.1, 3.5) node[right]{$p(z_{t} \mid \bm{x}_{t}, m_{t-1})$};
+    \draw (3, 0.5) node[right]{$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$};
+
+    \draw [bend right, distance=0.3cm] (1.5, 0) to node[fill=white, inner sep=0.2pt, circle, below] {$L^{(i)}$} (2.5, 0);
+   \end{tikzpicture}
+   \caption{The Meaningful Area of the Observation Likelihood}
+   \label{fig:meaningful_area_of_likelihood}
+\end{figure}
+
+このとき，オドメトリ動作モデルによってばらまかれたパーティクルの内，図\ref{fig:meaningful_area_of_likelihood}に示す観測モデルの意味のある領域$L^{(i)}$をカバーするパーティクルの数は非常に少なくなってしまいます．
+$L^{(i)}$を十分な数のパーティクルで近似するには，以下の３つの対策が考えられます．
+
+\begin{enumerate}
+  \item 計算に使用するパーティクルの数を増やす
+  \item 観測モデルを平滑化して分散を大きくし，$L^{(i)}$を無理やり大きくする
+  \item パーティクルを観測に近い方向にばらまく
+\end{enumerate}
+
+パーティクルの数を増やせば当然$L^{(i)}$をカバーするパーティクルの数も増えますが，無駄な計算も多くなります．
+観測モデルを平滑化して精度を落とせば$L^{(i)}$に近いパーティクルの重みをある程度確保できますが，せっかくのセンサのデータを破棄することにつながります．
+
+というわけで，パーティクルを観測に近い方向にばらまくような提案分布を作れば良いということになります．
+GMappingでは提案分布に観測の情報を統合することにより，観測モデルの意味のある領域にパーティクルを集中させる方法を取っています．
+すなわち，
+
+\begin{equation}
+  p(\bm{x}_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, z_{t}, u_{t})
+  = \frac{p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t})p(\bm{x}_{t} \mid \bm{x}_{t-1}^{(i)}, u_{t-1})}{p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, u_{t})}
+  \label{eq:improved_proposal}
+\end{equation}
+
+\noindent
+を提案分布として使用します．
+式\ref{eq:improved_proposal}を提案分布として使用したとき，パーティクルの重みの計算式は，
+
+\begin{equation}
+  \begin{split}
+    w_{t}^{(i)} &= \eta \frac{p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{p(\bm{x}_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, z_{t}, u_{t})) w_{t-1}^{(i)}} \\
+    &= \eta \frac{p(z_{1:t} \mid \bm{x}_{t}^{(i)}, m_{t-1}^{(i)}) p(\bm{x}_{t}^{(i)} \mid \bm{x}_{t-1}^{(i)}, u_{t})}{\frac{p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t})p(\bm{x}_{t} \mid \bm{x}_{t-1}^{(i)}, u_{t-1})}{p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, u_{t})}} \\
+    &= \eta p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, u_{t})w_{t-1}^{(i)} \\
+    &= \int p(z_{t} \mid \bm{x}^{\prime})p(\bm{x}^{\prime} \mid \bm{x}_{t-1}^{(i)}, u_{t})d\bm{x}^{\prime} \cdot w_{t-1}^{(i)}
+  \end{split}
+\end{equation}
+
+\noindent
+となります．
+特徴ベースのFastSLAM2.0では，この改善された提案分布をガウス分布に近似したものを使用しています．
+ランドマークの計測誤差がガウス分布に従うと仮定し，提案分布をカルマンフィルタによってガウス分布に近似します．
+一方，GMappingのように占有格子地図を扱うSLAMでは，観測モデルの形状が予想できないため，特徴ベースのようにカルマンフィルタを使って近似するといったことができません．
+そこで，GMappingではスキャンマッチングを用いて，状態遷移モデルによってばらまいたパーティクルを尤もらしい位置に補正しています．
+
+まず，状態遷移モデルに従ってパーティクルを遷移させます．
+この作業はFastSLAM1.0と変わりません．
+次に，センサによって得られた観測情報を使って，状態遷移モデルで移動させたパーティクルを，尤度が高くなる位置に移動させます．
+スキャンマッチングを適用した後，分布のガウス近似の中心と分散を求めます．
+中心$\mu_{t}^{(i)}$と分散$\Sigma_{t}^{(i)}$の計算式は式\ref{eq:mean_and_covariance}となります．
+
+\begin{equation}
+  \begin{cases}
+    \mu_{t}^{(i)} = \frac{1}{\eta^{(i)}} \sum_{j = 1}^{K} \bm{x}_{j} \cdot p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{j}) \cdot p(\bm{x}_{j} \mid \bm{x}_{t-1}^{(i)}, u_{t}) \\
+    \Sigma_{t}^{(i)} = \frac{1}{\eta^{(i)}} \sum_{j = 1}^{K}\bm{x}_{j} \mid m_{t-1}^{(i)}, \bm{x}_{j}) \cdot p(\bm{x}_{j} \mid \bm{x}_{t-1}^{(i)}, u_{t}) \cdot (\bm{x}_{j} - \mu_{t}^{(i)})(\bm{x}_{j} - \mu_{t}^{(i)})^{T}
+  \end{cases}
+  \label{eq:mean_and_covariance}
+\end{equation}
+
+\noindent
+ここで，$\eta^{(i)}$は正規化因子で，式\ref{eq:normalized_factor}で計算できます．
+
+\begin{equation}
+  \eta^{(i)} = \sum_{j=1}^{K} p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{j}) p(\bm{x}_{j} \mid \bm{x}_{t-1}^{(i)}, u_{t})
+  \label{eq:normalized_factor}
+\end{equation}
+
+このようにすることで，改善された提案分布を求めることができるようになります．
+従って，重みの計算式は式\ref{eq:particle_weight_by_improved_proposal}となります．
+
+\begin{equation}
+  \begin{split}
+    w_{t}^{(i)} &= p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{t-1}^{(i)}, u_{t}) w_{t-1}^{(i)} \\
+    &= \int p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}^{\prime})p(\bm{x}^{\prime} \mid \bm{x}_{t-1}^{(i)}, u_{t})d\bm{x}^{\prime} w_{t-1}^{(i)}\\
+    &\simeq \sum_{j=1}^{K} p(z_{t} \mid m_{t-1}^{(i)}, \bm{x}_{j}) p(\bm{x}_{j} \mid \bm{x}_{t-1}^{(i)}, u_{t}) w_{t-1}^{(i)} \\
+    &= \eta^{(i)} w_{t-1}^{(i)}
+  \end{split}
+  \label{eq:particle_weight_by_improved_proposal}
+\end{equation}
+
+実際に計算を行う際は，観測モデル$p(z_{t} \mid \bm{x}_{t}, m_{t-1}^{(i)})$はレーザービームの尤度場モデルが，状態遷移モデル$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$にはオドメトリ動作モデルが使われます．
+これらのモデルについては次小節以降に説明します．
+
 \subsection{オドメトリ状態遷移モデル}
 
 \subsection{レーザービームの尤度場モデル}
