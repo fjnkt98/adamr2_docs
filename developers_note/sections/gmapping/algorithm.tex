@@ -234,12 +234,132 @@ GMappingでは提案分布に観測の情報を統合することにより，観
 \end{equation}
 
 実際に計算を行う際は，観測モデル$p(z_{t} \mid \bm{x}_{t}, m_{t-1}^{(i)})$はレーザービームの尤度場モデルが，状態遷移モデル$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$にはオドメトリ動作モデルが使われます．
-これらのモデルについては次小節以降に説明します．
-
-\subsection{オドメトリ状態遷移モデル}
-
-\subsection{レーザービームの尤度場モデル}
+オドメトリ動作モデルは\ref{sec:motion_model_odometry}で，尤度場モデルは\ref{sec:likelihood_field_model}で説明します．
 
 \subsection{リサンプリングアルゴリズム}
+
+
+\subsection{オドメトリ状態遷移モデル}
+\label{sec:motion_model_odometry}
+
+ここではホイールオドメトリによって状態遷移モデル$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$を求める手順を説明します．
+オドメトリによって求めた時刻$t$のロボットの姿勢を$\bar{\bm{x}}_{t}$と表記することにします．
+ホイールオドメトリはドリフトやスリップによる誤差を含むので，オドメトリ座標系でのロボットの姿勢$\bar{\bm{x}_{t}}$とグローバル座標系でのロボットの姿勢$\bm{x}_{t}$は一致することはありません．
+
+一方で，$\bar{\bm{x}}_{t-1}$から$\bar{\bm{x}}_{t}$までの相対的な移動量の差分は，真の姿勢$\bm{x}_{t-1}$から$\bm{x}_{t}$との差分とそれほどズレているわけではないため，いい感じの推定量として使用することができます．
+そこで，ロボットの移動の情報$u_{t}$を式\ref{eq:motion_information}のように定義することにします．
+
+\begin{equation}
+  u_{t} =
+  \begin{pmatrix}
+    \bar{\bm{x}}_{t-1} \\
+    \bar{\bm{x}}_{t}
+  \end{pmatrix}
+  \label{eq:motion_information}
+\end{equation}
+
+そして，$u_{t}$を更に3つのパラメータ$\delta_{\text{rot}1}$，$\delta_{\text{trans}}$，$\delta_{\text{rot}2}$に分解して考えます．
+$\delta_{\text{rot}1}$，$\delta_{\text{trans}}$，$\delta_{\text{rot}2}$は移動量を表す変数で，これを使うことにより，$u_{t}$は以下のような3段階のシーケンスで表されます．
+
+\begin{itemize}
+  \item 回転量$\delta_{\text{rot}1}$だけ旋回
+  \item 並進量$\delta_{\text{trans}}$だけ並進
+  \item 回転量$\delta_{\text{rot}2}$だけ旋回
+\end{itemize}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    % Body t-1
+    \draw[thick, rotate around={-105:(0, 0)}]
+      (0, 0.5) -- (0.5, 0.25) -- (0.5, -0.5)
+        -- (-0.5, -0.5) -- (-0.5, 0.25) -- (0, 0.5);
+    \draw[rotate around={30:(0, 0)}] (0, 0) -- (6, 0);
+    % Body t
+    \draw[thick, rotate around={75:(5.2, 3)}]
+    (5.7, 3) -- (5.45, 2.5) -- (4.7, 2.5)
+      -- (4.7, 3.5) -- (5.45, 3.5) -- (5.7, 3);
+
+    \draw[rotate around={-15:(0, 0)}] (0, 0) -- (1, 0);
+    \draw[rotate around={30:(5.2, 3)}] (5.2, 3) -- (6.2, 3);
+    \draw[rotate around={75:(5.2, 3)}] (5.2, 3) -- (6.2, 3);
+
+    \draw[rotate around={-15:(0, 0)}] (0.8, 0) arc (0:45:0.8);
+    \draw[rotate around={30:(5.2, 3)}] (6, 3) arc (0:45:0.8);
+
+    \draw (3, 2) node[above]{$\delta_{\text{trans}}$};
+    \draw (0.8, 0.2) node[right]{$\delta_{\text{rot1}}$};
+    \draw (5.6, 3.6) node[above right]{$\delta_{\text{rot2}}$};
+
+    \draw (0, 0.6) node[above]{$\bm{x}_{t-1}$};
+    \draw (5.2, 2) node[above]{$\bm{x}_{t}$};
+  \end{tikzpicture}
+  \caption{Three Parameters of the Odometry Motion Model}
+  \label{fig:three_parameters_of_the_odometry_motion_model}
+\end{figure}
+
+言い換えれば，姿勢のペア$(\bar{\bm{x}}_{t-1}, \bar{\bm{x}}_{t})$はパラメータとして要素数3のベクトル$(\delta_{\text{rot}1}, \delta_{\text{trans}}, \delta_{\text{rot}2})^{T}$を持ち，このベクトルは$(\bar{\bm{x}}_{t-1}, \bar{\bm{x}}_{t})$を再構築するのに十分な情報を持っていることになります．
+というわけで，このベクトルをオドメトリの情報として使用することにします．
+
+これらのパラメータ$\delta_{\text{rot}1}$，$\delta_{\text{trans}}$，$\delta_{\text{rot}2}$はそれぞれ独立したノイズを持つと仮定すると，状態遷移モデル$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$を計算するアルゴリズムはアルゴリズム\ref{alg:motion_model_odometry}のようになります．
+
+\begin{algorithm}
+  \caption{motion\_model\_odometry}
+  \label{alg:motion_model_odometry}
+  \begin{algorithmic}[1]
+    \REQUIRE $\bm{x}_{t} = (x_{t}, y_{t}, \theta_{t})^{T}, \bm{x}_{t-1} = (x_{t-1}, y_{t-1}, \theta_{t-1})^{T}, u_{t} = (\bar{\bm{x}}_{t-1}, \bar{\bm{x}}_{t})^{T}$
+    \ENSURE $p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$
+
+    \STATE $\delta_{\text{rot1}} = \text{atan2}(\bar{y}_{t} - \bar{y}_{t-1}, \bar{x}_{t} - \bar{x}_{t-1}) - \bar{\theta}_{t-1}$
+    \STATE $\delta_{\text{trans}} = \sqrt{(\bar{x}_{t-1} - \bar{x}_{t})^2 + (\bar{y}_{t-1} - \bar{y}_{t})^2}$
+    \STATE $\delta_{\text{rot2}} = \bar{\theta}_{t} - \bar{\theta}_{t-1} - \delta_{\text{rot1}}$
+
+    \STATE $\hat{\delta}_{\text{rot1}} = \text{atan2}(y_{t} - y_{t-1}, x_{t} - x_{t-1}) - \theta_{t-1}$
+    \STATE $\hat{\delta}_{\text{trans}} = \sqrt{(x_{t-1} - x_{t})^2 + (y_{t-1} - y_{t})^2}$
+    \STATE $\hat{\delta}_{\text{rot2}} = \theta_{t} - \theta_{t-1} - \hat{\delta}_{\text{rot1}}$
+
+    \STATE $p_1 = \text{prob}(\delta_{\text{rot1}} - \hat{\delta}_{\text{rot1}}, \alpha_1 \hat{\delta}_{\text{rot1}} + \alpha_2 \hat{\delta}_{\text{trans}})$
+    \STATE $p_2 = \text{prob}(\delta_{\text{trans}} - \hat{\delta}_{\text{trans}}, \alpha_3 \hat{\delta}_{\text{trans}} + \alpha_4 (\hat{\delta}_{\text{rot1}} + \hat{\delta}_{\text{rot2}}))$
+    \STATE $p_3 = \text{prob}(\delta_{\text{rot2}} - \hat{\delta}_{\text{rot2}}, \alpha_1 \hat{\delta}_{\text{rot2}} + \alpha_2 \hat{\delta}_{\text{trans}})$
+
+    \STATE return $p_1 \cdot p_2 \cdot p_3$
+  \end{algorithmic}
+\end{algorithm}
+
+尚，アルゴリズム\ref{alg:motion_model_odometry}における$\text{prob}(a, b)$関数は，平均$a$，分散$b$の確率分布(ガウス分布もしくは三角分布)を表します．
+
+実際にパーティクルフィルタを実装する場合は，アルゴリズム\ref{alg:motion_model_odometry}を使って確率分布そのものを求めるよりも，その分布から姿勢をドローした結果を求めるのが一般的です．
+アルゴリズム\ref{alg:sample_motion_model_odometry}がそのアルゴリズムの実装例です．
+
+\begin{algorithm}
+  \caption{sample\_motion\_model\_odometry}
+  \label{alg:sample_motion_model_odometry}
+  \begin{algorithmic}[1]
+    \REQUIRE $\bm{x}_{t-1} = (x_{t-1}, y_{t-1}, \theta_{t-1})^{T}, u_{t} = (\bar{\bm{x}}_{t-1}, \bar{\bm{x}}_{t})^{T}$
+    \ENSURE $\bm{x}_{t} = (x_{t}, y_{t}, \theta_{t})^{T}$ sampled from $p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$
+
+    \STATE $\delta_{\text{rot1}} = \text{atan2}(\bar{y}_{t} - \bar{y}_{t-1}, \bar{x}_{t} - \bar{x}_{t-1}) - \bar{\theta}_{t-1}$
+    \STATE $\delta_{\text{trans}} = \sqrt{(\bar{x}_{t-1} - \bar{x}_{t})^2 + (\bar{y}_{t-1} - \bar{y}_{t})^2}$
+    \STATE $\delta_{\text{rot2}} = \bar{\theta}_{t} - \bar{\theta}_{t-1} - \delta_{\text{rot1}}$
+
+    \STATE $\hat{\delta}_{\text{rot1}} = \delta_{\text{rot1}} - \text{sample}(\alpha_1 \delta_{\text{rot1}} + \alpha_2 \delta_{trans})$
+    \STATE $\hat{\delta}_{\text{trans}} = \delta_{\text{trans}} - \text{sample}(\alpha_3 \delta_{\text{trans}} + \alpha_4(\delta_{\text{rot1}} + \delta_{\text{rot2}}))$
+    \STATE $\hat{\delta}_{\text{rot2}} = \delta_{\text{rot2}} - \text{sample}(\alpha_1 \delta_{\text{rot2}} + \alpha_2 \delta_{\text{trans}})$
+
+    \STATE $x_{t} = x_{t-1} + \hat{\delta}_{\text{trans}} \cos(\theta_{t-1} + \hat{\delta}_{\text{rot1}})$
+    \STATE $y_{t} = y_{t-1} + \hat{\delta}_{\text{trans}} \sin(\theta_{t-1} + \hat{\delta}_{\text{rot1}})$
+    \STATE $\theta_{t} = \theta_{t-1} + \hat{\delta}_{\text{rot1}} + \hat{\delta}_{\text{rot2}}$
+
+    \STATE return $\bm{x}_{t} = (x_{t}, y_{t}, \theta_{t})^T$
+  \end{algorithmic}
+\end{algorithm}
+
+ここで，$\text{sample}(b)$は分散$b$の分布(ガウス分布または三角分布)からノイズをドローする関数です．
+アルゴリズム\ref{alg:sample_motion_model_odometry}は，入力として$\bm{x}_{t-1}$と$u_{t}$を受け取り，出力として$p(\bm{x}_{t} \mid \bm{x}_{t-1}, u_{t})$に従うランダムな$\bm{x}_{t}$を返します．
+確率分布そのものを求めるよりも簡単に計算でき，ドローした姿勢をすぐに計算に使うことができるので，プログラムとして実装する際はこちらのアルゴリズムが使用されます．
+
+\subsection{レーザービームの尤度場モデル}
+\label{sec:likelihood_field_model}
+
 
 \end{document}
