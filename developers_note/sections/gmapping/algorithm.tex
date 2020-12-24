@@ -238,6 +238,43 @@ GMappingでは提案分布に観測の情報を統合することにより，観
 
 \subsection{リサンプリングアルゴリズム}
 
+GMappingでは，パーティクルをリサンプリングするタイミングを決めるための指標として，式\ref{eq:adaptive_resampling}に示す$N_{\text{eff}}$という数値を導入しています．
+
+\begin{equation}
+  N_{\text{eff}} = \frac{1}{\sum_{i=1}^{N} (\tilde{w_{(i)}})^2}
+  \label{eq:adaptive_resampling}
+\end{equation}
+
+$N$はパーティクルの数です．
+$N_{\text{eff}}$は現在のパーティクルが事後分布をどれだけよく表しているかを示す指標で，正規化されたパーティクルの重み$\tilde{w_{(i)}}$の2乗和の逆数で計算されます．
+
+$N_{\text{eff}}$の直観的理解は以下のようなものです：
+もしパーティクルが事後分布から引き出された場合，importance samplingの原理により，それらの重みは互いに等しくなります．
+逆に，パーティクルによる事後分布の近似の精度が悪いと，パーティクルの重みの分散は大きくなります．
+言い換えれば，$N_{\text{eff}}$はパーティクルの重みの分散の尺度とみなすことができるため，パーティクルの集合が事後分布をどれだけ近似しているかを評価する尺度として利用することができます．
+
+パーティクルの重みがすべて等しいとき，$N_{\text{eff}}$の値は$N^2$に等しくなります．
+逆に各パーティクルの重みの差が大きくなると，$N_{\text{eff}}$の値は1に近づきます．
+
+GMappingでは，$N_{\text{eff}}$が閾値$\frac{N}{2}$を下回ったときにリサンプリングが実行されます．\cite{Gmapping}
+数式で表すと式\ref{eq:neff}のようになります．
+
+\begin{equation}
+  N_{\text{eff}} < \frac{N}{2}
+  \label{eq:neff}
+\end{equation}
+
+ROSの\textsf{slam\_gmapping}では，このリサンプリングの閾値は\textsf{resampleThreshold}で決定することができます．
+これは$\frac{N_{\text{eff}}}{N}$の比の閾値として定義されており，デフォルト値は0.5に設定されています．
+すなわち，
+
+\begin{equation}
+  \frac{N_{\text{eff}}}{N} < \textsf{resampleThreshold} = 0.5 \text{(default)}
+  \label{eq:neff_ros}
+\end{equation}
+
+\noindent
+という条件を満たしたとき，リサンプリングが行われるようになります．
 
 \subsection{オドメトリ状態遷移モデル}
 \label{sec:motion_model_odometry}
