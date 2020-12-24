@@ -321,8 +321,8 @@ $\delta_{\text{rot}1}$，$\delta_{\text{trans}}$，$\delta_{\text{rot}2}$は移�
     \draw[rotate around={30:(5.2, 3)}] (5.2, 3) -- (6.2, 3);
     \draw[rotate around={75:(5.2, 3)}] (5.2, 3) -- (6.2, 3);
 
-    \draw[rotate around={-15:(0, 0)}] (0.8, 0) arc (0:45:0.8);
-    \draw[rotate around={30:(5.2, 3)}] (6, 3) arc (0:45:0.8);
+    \draw[rotate around={-15:(0, 0)}] (0.8, 0) arc [start angle=0, delta angle=45, radius=0.8];
+    \draw[rotate around={30:(5.2, 3)}] (6, 3) arc [start angle=0, delta angle=45, radius=0.8];
 
     \draw (3, 2) node[above]{$\delta_{\text{trans}}$};
     \draw (0.8, 0.2) node[right]{$\delta_{\text{rot1}}$};
@@ -398,5 +398,135 @@ $\delta_{\text{rot}1}$，$\delta_{\text{trans}}$，$\delta_{\text{rot}2}$は移�
 \subsection{レーザービームの尤度場モデル}
 \label{sec:likelihood_field_model}
 
+GMappingでは観測モデルとしてレーザービームの尤度場モデル(\textsf{likelihood\_field\_model})が使われています．
+尤度場モデルは距離センサの確率モデルの1つで，もっともらしい物理的な証明のないアドホックなモデルですが，良く機能するモデルとされています．
+
+尤度場モデルのキーアイデアは，レーザースキャンの各ビームの終点をグローバル座標に投影して計算を行うことにあります．
+グローバル座標系における時刻$t$のロボットの姿勢を$\bm{x}_{t} = (x_{t}, y_{t}, \theta_{t})^T$，ロボット座標系でのセンサの位置を$(x_{k, \text{sens}}, y_{k, \text{sens}})^T$，センサから見たビームの角度を$\theta_{k, \text{sens}}$，距離を$z_{t}^{k}$とすると，ビームの終点のグローバル座標は式\ref{eq:beam_endpoint_transform}で表されます．
+
+\begin{equation}
+  \begin{pmatrix}
+    x_{z_{t}^{k}} \\
+    y_{z_{t}^{k}}
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+    x_{t} \\
+    y_{t}
+  \end{pmatrix}
+  +
+  \begin{pmatrix}
+    \cos{\theta_{t}} & -\sin{\theta_{t}} \\
+    \sin{\theta_{t}} & \cos{\theta_{t}}
+  \end{pmatrix}
+  \begin{pmatrix}
+    x_{k, \text{sens}} \\
+    y_{k, \text{sens}}
+  \end{pmatrix}
+  + z_{t}^{k}
+  \begin{pmatrix}
+    \cos{\theta_{t} + \theta_{k, \text{sens}}} \\
+    \sin{\theta_{t} + \theta_{k, \text{sens}}} \\
+  \end{pmatrix}
+  \label{eq:beam_endpoint_transform}
+\end{equation}
+
+この座標変換の関係を図で表したのが図\ref{fig:beam_endpiont_transoform}です．
+図\ref{fig:beam_endpoint_transform}ではグローバル座標系とオドメトリ座標系がかなり離れているように見えますが，オドメトリの精度によってはそれほど乖離することはありません．
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    % Global Coordinate Axis
+    \draw (0, 0) node[below]{$\Sigma_{\text{map}}$};
+    \draw[->, >=stealth, semithick] (0, 0) -- (1.5, 0) node[right]{$x$};
+    \draw[->, >=stealth, semithick] (0, 0) -- (0, 1.5) node[above]{$y$};
+
+    % Odometry Coordinate Axis
+    \draw (2, 1) node[below]{$\Sigma_{\text{odom}}$};
+    \draw[->, >=stealth, semithick, rotate around={30:(2, 1)}] (2, 1) -- (3.5, 1) node[right]{$x$};
+    \draw[->, >=stealth, semithick, rotate around={30:(2, 1)}] (2, 1) -- (2, 2.5) node[above]{$y$};
+
+    % Robot
+    \draw[rotate around={45:(4, 3)}] (4, 3) -- (3.75, 3.5) -- (3, 3.5) -- (3, 2.5) -- (3.75, 2.5) -- (4, 3);
+    \draw[->, >=stealth, semithick, rotate around={45:(4, 3)}] (3.5, 3) -- (4, 3);
+    \draw[->, >=stealth, semithick, rotate around={45:(4, 3)}] (3.5, 3) -- (3.5, 3.5);
+    
+    % Sensor
+    \draw[->, >=stealth, semithick, blue, rotate around={45:(4, 3)}] (4, 3) -- (4.5, 3);
+    \draw[->, >=stealth, semithick, blue, rotate around={45:(4, 3)}] (4, 3) -- (4, 3.5);
+
+    % Beam
+    \draw[blue, dotted, rotate around={45:(4, 3)}] (4, 3) -- (5.73, 4);
+    \fill (4.517, 4.932) circle [blue, radius=2pt];
+    \draw[blue, rotate around={45:(4, 3)}] (4, 3) -- (6, 3);
+    \draw[thick, ->, rotate around={45:(4, 3)}] (5, 3) arc [start angle=0, delta angle=30, radius=1];
+    \draw (4.5, 5) node[above]{$(x_{z_{t}^{k}}, y_{z_{t}^{k}})^T$};
+    \draw (4.5, 3.5) node[right]{$\theta_{k, \text{sens}}$};
+  \end{tikzpicture}
+  \caption{Beam Endpoint Transform}
+  \label{fig:beam_endpiont_transoform}
+\end{figure}
+
+この座標変換は，センサが障害物を検知したときのみ意味を持ちます．
+センサが障害物を検知できなかったとき，一般的に，距離センサは最大測定範囲の数値を返します．
+センサが最大値を返したとき，式\ref{eq:beam_endpoint_transform}の座標変換は，物理空間において意味を持たなくなります．
+尤度場モデルにおいて，センサが最大値を返したときは単純にその値を無視します．
+
+尤度場モデルは以下に示す3つのノイズを考慮します．
+
+\begin{enumerate}
+  \item 測定ノイズ$p_{\text{hit}}$ \\
+  距離センサによって障害物までの距離を測定するときに混入する偶然誤差です．
+  誤差の大きさはガウス分布によって近似することができます．
+  
+  ビームの終点座標$(x_{z_{t}^k}, y_{z_{t}^k})^T$と，それに一番近い地図$m_[t-1]$の障害物(占有格子地図では障害物セル)とのユークリッド距離を$\text{dist}$という変数で置くと，このノイズの確率モデルは式\ref{eq:p_hit}で表されます．
+  $\epsilon_{\sigma_{\text{hit}}^{2}}(x)$は平均0，分散$\sigma_{\text{hit}}^2$のガウス分布です．
+  
+  \begin{equation}
+    p_{\text{hit}}(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1}) = \epsilon_{\sigma_{\text{hit}}^{2}}(\text{dist}^2) = \frac{1}{\sqrt{2\pi \sigma_{\text{hit}}^2}} \exp\left(-\frac{\text{dist}^2}{2\sigma_{\text{hit}}^2}\right)
+    \label{eq:p_hit}
+  \end{equation}
+  
+  \noindent
+  で表されます．
+  
+  ガウス分布に$\text{dist}$を代入したときの値が，そのビームの観測尤度となります．
+  障害物との距離が0のとき，すなわち観測誤差が0のとき，そのビームの尤度は最大になります．
+  \item 計測失敗$p_{\text{max}}$ \\
+  センサが最大測定範囲の値を返したとき，測定失敗とみなします．
+  この誤差は極小幅の一様分布としてモデリングします．
+  \item ランダム測定$p_{\text{rand}}$ \\
+  一様に出現する原因不能なノイズをランダム測定として定義します．
+  この分布は一様分布でモデル化します．
+\end{enumerate}
+
+ビーム一本の観測モデルは，これらのモデルを線形結合したものになります．
+
+\begin{equation}
+  p(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1}) = z_{\text{hit}} \cdot p_{\text{hit}} + z_{\text{rand}} \cdot p_{\text{rand}} + z_{\text{max}} \cdot p_{\text{max}}
+  \label{eq:beam_likelihood}
+\end{equation}
+
+ただし，$z_{\text{hit}}$，$z_{\text{rand}}$，$z_{\text{max}}$は各分布の重みづけ係数で，$z_{\text{hit}} + z_{\text{rand}} + z_{\text{max}} = 1$です．
+
+GMappingでは$p_{\text{max}}$は扱っていないようなので，\footnote{ソースコードを見てそう判断しました．実際そうなっているかどうかの証拠は見つかっていません．}
+ビームの観測モデルは式\ref{eq:beam_likelihood_im_gmapping}のようになっていると思われます．
+
+\begin{equation}
+  p(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1}) = (1 - z_{\text{rand}}) \cdot p_{\text{hit}} + z_{\text{rand}}
+  \label{eq:beam_likelihood_im_gmapping}
+\end{equation}
+
+一度のレーザースキャンにおいて，各ビームの測定誤差がそれぞれ独立していると仮定すると，レーザースキャン$z_{t}$の尤度は式\ref{eq:measurement_model}のように計算できます．
+
+\begin{equation}
+  p(z_{t} \mid \bm{x}_{t}, m_[t-1]) = \prod_{j=0}^{K-1} p(z_{t}^{j} \mid \bm{x}_{t}, m_{t-1})
+  \label{eq:measurement_model}
+\end{equation}
+
+式\ref{eq:measurement_model}には指数の計算が含まれる他，少数の掛け算を何度も繰り返すので，このままプログラムとして実装するのはあまりよろしくありません．
+GMappingでは尤度関数の自然対数を取り，乗算を加算として計算しているようです．
+\footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/include/gmapping/scanmatcher/scanmatcher.h\#L243}}
 
 \end{document}
