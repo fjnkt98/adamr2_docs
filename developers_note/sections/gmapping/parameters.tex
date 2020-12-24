@@ -67,6 +67,9 @@ ROS Wikiより，\textsf{slam\_gmapping}ノードが使用するパラメータ�
   \item \textsf{lsigma} \\
     double型，default: 0.075 \\
     レーザーセンサの確率モデルにおける，ランダム誤差の発生確率です．
+  \item \textsf{kernelSize} \\
+    double型，default: 1.0 \\
+    レーザーセンサの確率モデルにおける，レーザービームの終点との距離が最短となる障害物セルを探す際の探索範囲です．
 \end{itemize}
 
 GMappingではレーザーセンサの確率モデルとして，尤度場モデルが使用されています．
@@ -75,9 +78,6 @@ GMappingではレーザーセンサの確率モデルとして，尤度場モデ
 \subsection{スキャンマッチングに関するパラメータ}
 
 \begin{itemize}
-  \item \textsf{kernelSize} \\
-    double型，default: 1.0 \\
-    スキャンマッチングの探索範囲です．
   \item \textsf{lstep} \\
     double型，default: 0.05 \\
     スキャンマッチングにおける，並進方向の初期探索ステップです．

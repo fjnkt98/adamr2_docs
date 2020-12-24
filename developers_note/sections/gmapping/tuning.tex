@@ -49,10 +49,6 @@ GMappingではループとじ込みを明示的に行っていません．
 
 \subsection{変更の影響が不明なパラメータ}
 
-\textsf{kernelSize}パラメータはスキャンマッチングの探索範囲とされています．
-デフォルト値は1.0で，ソースコード\footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/include/gmapping/scanmatcher/scanmatcher.h\#L191-L250}}を見る限りは，パーティクルを中心とする幅\SI{2.0}{m}を探索しているものと思われますが，プログラムが難解なため筆者の理解が及んでいません．
-\textsf{lstep}および\textsf{astep}はスキャンマッチングにおける初期探索ステップとされています．
-スキャンマッチングの精度はこの値に影響されると考えられますが，どのような基準で調整すればよいのかがわからないため，このドキュメントでは触れないことにしました．
 \textsf{ogain}は尤度を平滑化するゲインであると\textsf{slam\_gmapping}のソースコード中で説明されていますが，どこで使われているのかが不明です．
 
 \end{document}
