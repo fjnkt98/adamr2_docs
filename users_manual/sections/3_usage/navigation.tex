@@ -5,4 +5,49 @@
 
 \section{自律走行実験の手順}
 
+自律走行実験を行うためには，SLAMで作成した地図が事前に必要となります．
+自律走行を行いたい場所の地図をあらかじめ作成しておき，適当なディレクトリに保存しておいてください．
+
+Navigation Stackを使用した自律走行実験を行うには，\textsf{adamr2\_navigation}パッケージに置かれているlaunchファイルを使用します．
+自律走行を行うためには，まずロボットを起動して走行可能な状態にします．
+
+SLAMのときと異なり，自律走行を行う際は低い位置の障害物を検知するためにRealsense D435による点群情報が必要になります．
+そのため，\textsf{adamr2\_control.launch}，\textsf{rplidar.launch}の他に，\textsf{adamr2\_bringup}パッケージにある\textsf{realsense.launch}を起動する必要があります．
+これらのlaunchファイルを個別に実行してもよいのですが，3つのターミナルを開いてそれぞれを実行するのは少々手間です．
+\textsf{adamr2\_bringup}パッケージには，これら3つのlaunchファイルを一括で実行するlaunchファイルである\textsf{adamr2\_bringup.launch}が用意されています．
+これを実行することで自律走行に必要な準備を行うことができます．
+
+\begin{lstlisting}[language=sh, label=code:launch_adamr2_bringup, caption=Launch \textsf{adamr2\_bringup.launch}]
+roslaunch adamr2_bringup adamr2_bringup.launch
+\end{lstlisting}
+
+次に自律走行のためのノード群を起動するためのlaunchファイルを実行します．
+\textsf{adamr2\_navigation}パッケージに置かれている\textsf{adamr2\_navigation.launch}を実行することで，Navigation Stackのノードを一括で実行することができます．
+
+\textsf{adamr2\_navigation.launch}は，実行時に2つの引数を取ります．
+\textsf{situation}と\textsf{map\_file}です．
+\textsf{situation}は実験時のシチュエーションを指定する引数で，SLAMのときと同様に\textsf{real}もしくは\textsf{sim}を指定します．
+\textsf{map\_file}は実験で使用する地図のパスを指定する引数です．
+パスの指定にはフルパスを入力する必要があります．
+いちいちフルパスを入れるのはさすがに面倒なので，対象の地図があるディレクトリに移動し，UNIXの\textsf{pwd}コマンドを活用すると良いでしょう．
+具体的には，\ref{code:launch_adamr2_navigation}のように実行します．
+
+\begin{lstlisting}[language=sh, label=code:launch_adamr2_navigation, caption=Launch \textsf{adamr2\_navigation.launch}]
+cd path/to/the/map/file
+roslaunch adamr2_navigation adamr2_navigation.launch \
+  situation:=real map_file:=`pwd`/map.yaml
+\end{lstlisting}
+
+\textsf{path/to/the/map/file}には実際の地図があるディレクトリを指定してください．
+バッククォートでコマンドを囲むことで，コマンドの実行結果をその場所に展開することができます．
+\textsf{pwd}コマンドはカレントディレクトリのパスを出力するコマンドなので\footnote{\emph{P}rint \emph{W}orking \emph{D}irectoryの略です．}，
+結果として地図へのフルパスを\textsf{map\_file}引数に指定できることになります．
+\textsf{adamr2\_navigation.launch}はこの2つの引数を指定してやらないと起動しないので注意してください．
+
+\textsf{adamr2\_navigation.launch}を起動すると，Navigation Stackの各種ノードと\textsf{rviz}が起動します．
+あとは\textsf{rviz}上でナビゲーションの目的地を指定してやれば，自律走行が開始されます．
+
+ちなみに，\textsf{adamr2\_navigation.launch}で起動するグローバルプランナは\textsf{global\_planner}，ローカルプランナは\textsf{base\_local\_planner}です．
+起動するプランナを変更したい場合は，\textsf{adamr2\_navigation.launch}の中の\textsf{arg}タグのうち，\textsf{global\_planner\_param\_file}および\textsf{local\_planner\_param\_file}の項目を編集して，読み込むパラメータファイルを変更してください．
+
 \end{document}
