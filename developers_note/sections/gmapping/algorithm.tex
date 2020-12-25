@@ -480,7 +480,7 @@ GMappingでは観測モデルとしてレーザービームの尤度場モデル
   距離センサによって障害物までの距離を測定するときに混入する偶然誤差です．
   誤差の大きさはガウス分布によって近似することができます．
   
-  ビームの終点座標$(x_{z_{t}^k}, y_{z_{t}^k})^T$と，それに一番近い地図$m_[t-1]$の障害物(占有格子地図では障害物セル)とのユークリッド距離を$\text{dist}$という変数で置くと，このノイズの確率モデルは式\ref{eq:p_hit}で表されます．
+  ビームの終点座標$(x_{z_{t}^k}, y_{z_{t}^k})^T$と，それに一番近い地図$m_{t-1}$の障害物(占有格子地図では障害物セル)とのユークリッド距離を$\text{dist}$という変数で置くと，このノイズの確率モデルは式\ref{eq:p_hit}で表されます．
   $\epsilon_{\sigma_{\text{hit}}^{2}}(x)$は平均0，分散$\sigma_{\text{hit}}^2$のガウス分布です．
   
   \begin{equation}
@@ -510,23 +510,50 @@ GMappingでは観測モデルとしてレーザービームの尤度場モデル
 
 ただし，$z_{\text{hit}}$，$z_{\text{rand}}$，$z_{\text{max}}$は各分布の重みづけ係数で，$z_{\text{hit}} + z_{\text{rand}} + z_{\text{max}} = 1$です．
 
-GMappingでは$p_{\text{max}}$は扱っていないようなので，\footnote{ソースコードを見てそう判断しました．実際そうなっているかどうかの証拠は見つかっていません．}
-ビームの観測モデルは式\ref{eq:beam_likelihood_im_gmapping}のようになっていると思われます．
+GMappingでは$p_{\text{max}}$及び$p_{\text{rand}}$は扱わず，$p_{\text{hit}}$のみを扱っているようなので，\footnote{ソースコードを見てそう判断しました．実際そうなっているかどうかの証拠は見つかっていません．}
+ビームの観測モデルは式\ref{eq:beam_likelihood_in_gmapping}のようになっていると思われます．
 
 \begin{equation}
-  p(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1}) = (1 - z_{\text{rand}}) \cdot p_{\text{hit}} + z_{\text{rand}}
-  \label{eq:beam_likelihood_im_gmapping}
+  p(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1}) = p_{\text{hit}} = \frac{1}{\sqrt{2\pi\sigma_{\text{hit}}^2}} \exp\left(-\frac{\text{dist}^2}{2\sigma_{\text{hit}}^2}\right)
+  \label{eq:beam_likelihood_in_gmapping}
 \end{equation}
 
+式\ref{eq:beam_likelihood_in_gmapping}は，レーザースキャンのビーム1本あたりの尤度を表しています．
 一度のレーザースキャンにおいて，各ビームの測定誤差がそれぞれ独立していると仮定すると，レーザースキャン$z_{t}$の尤度は式\ref{eq:measurement_model}のように計算できます．
 
 \begin{equation}
-  p(z_{t} \mid \bm{x}_{t}, m_[t-1]) = \prod_{j=0}^{K-1} p(z_{t}^{j} \mid \bm{x}_{t}, m_{t-1})
+  p(z_{t} \mid \bm{x}_{t}, m_{t-1}) = \prod_{j=0}^{K-1} p(z_{t}^{j} \mid \bm{x}_{t}, m_{t-1})
   \label{eq:measurement_model}
 \end{equation}
 
-式\ref{eq:measurement_model}には指数の計算が含まれる他，少数の掛け算を何度も繰り返すので，このままプログラムとして実装するのはあまりよろしくありません．
-GMappingでは尤度関数の自然対数を取り，乗算を加算として計算しているようです．
+式\ref{eq:beam_likelihood_in_gmapping}には指数の計算が含まれており，レーザースキャンのビーム本数が大きいと計算時間が大きくなります．
+また，\ref{eq:measurement_model}では少数の掛け算を何度も繰り返すので，少数の桁落ちや精度低下が懸念されます．
+GMappingではこの問題に対し，尤度関数の自然対数を取り，乗算を加算として計算しているようです．
+尤度関数の対数を取ると，式\ref{eq:beam_likelihood_in_gmapping}は式\ref{eq:logarithm_of_beam_likelihood}のように変換することができます．
+
+\begin{equation}
+  \begin{split}
+    \ln{p(z_{t}^{k} \mid \bm{x}_{t}, m_{t-1})} &= \ln{\left(\frac{1}{\sqrt{2\pi\sigma_{\text{hit}}^2}} \exp\left(-\frac{\text{dist}^2}{2\sigma_{\text{hit}}^2}\right)\right)} \\
+    &= \ln{\left(\frac{1}{\sqrt{2\pi\sigma_{\text{hit}}^2}}\right)} - \frac{\text{dist}^2}{2\sigma_{\text{hit}}^2} \\
+    &= -\frac{1}{2} \ln{(2\pi\sigma_{\text{hit}}^2)} - \frac{\text{dist}^2}{2\sigma_{\text{hit}}^2}
+  \end{split}
+  \label{eq:logarithm_of_beam_likelihood}
+\end{equation}
+
+式\ref{eq:logarithm_of_beam_likelihood}を使うことにより，式\ref{eq:measurement_model}は以下のように変換できます．
+
+\begin{equation}
+  \begin{split}
+  \ln{p(z_{t} \mid \bm{x}_{t}, m_{t-1})} &= \sum_{j=0}^{K-1} \left(-\frac{1}{2} \ln{(2\pi\sigma_{\text{hit}}^2)} - \frac{(\text{dist}^{j})^2}{2\sigma_{\text{hit}}^2}\right) \\
+    &= -\frac{K}{2} \ln{(2\pi\sigma_{\text{hit}}^2)} + \sum_{j=0}^{K-1} \left(-\frac{(\text{dist}^{j})^2}{2\sigma_{\text{hit}}^2}\right)
+  \end{split}
+  \label{eq:logarithm_measurement_model}
+\end{equation}
+
+GMappingのソースコードでは，式\ref{eq:logarithm_measurement_model}の2段目の1項目の定数項は省いて計算を行っているようです．
 \footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/include/gmapping/scanmatcher/scanmatcher.h\#L243}}
+このとき，式\ref{eq:logarithm_measurement_model}の2段目の2項目は負なので，尤度は常にマイナスの値を取ります．
+ただし，$\text{dist}$の値が小さいほど尤度が大きくなるのは変わらないため，尤度(重み)が一番大きいパーティクルがもっともらしい推定値として使用されます．
+\footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/gridfastslam/gridslamprocessor.cpp\#L498-L507}}
 
 \end{document}

@@ -29,10 +29,18 @@ RPLiDAR A2の角度分解能は標準で\SI{0.9}{deg}とされています．
 
 実験を通して作成した地図に歪みがあったり，地図作成に失敗するような場合は，レーザースキャナやオドメトリに関するパラメータを調整してみましょう．
 
-\textsf{sigma}及び\textsf{lsigma}は，レーザースキャンの尤度場モデルの形状を決定するパラメータです．
-\textsf{sigma}は偶然誤差のばらつきを，\textsf{lsigma}は説明できないランダム誤差の発生確率を表します．
-ロボットが静止した状態で固定された壁等を計測しているときに，壁に当たっているレーザービームの測定値がばらつくときは，\textsf{sigma}の値を大きくしてみましょう．
-また，障害物とロボットとの間に何もないのにその間で測定値が得られている，という現象が多く発生している場合は，\textsf{lsigma}の値を大きくしてみましょう．
+\textsf{lsigma}は，レーザースキャンの尤度場モデルの形状を決定するパラメータです．
+レーザービームの測定誤差のガウス分布の分散を\textsf{lsigma}で設定します．
+\textsf{lsigma}という名前ですが，ソースコード中の計算式
+\footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/include/gmapping/scanmatcher/scanmatcher.h\#L243}}
+が式\ref{eq:beam_likelihood_in_gmapping_program}のようになっているため，数学的な意味としては標準偏差ではなく分散に，しかも2がかけられた値として扱う方が良いと思われます．
+ロボットが静止した状態で固定された壁等を計測しているときに，壁に当たっているレーザービームの測定値がばらつくときは，\textsf{lsigma}の値を大きくしてみましょう．
+レーザースキャンによるロボット位置の推定精度が上がるかもしれません．
+
+\begin{equation}
+  l = \frac{-\text{dist}^2}{\text{lsigma}}
+  \label{eq:beam_likelihood_in_gmapping_program}
+\end{equation}
 
 また，ホイールオドメトリの精度に問題がある場合は，\textsf{srr}，\textsf{srt}，\textsf{str}，\textsf{stt}の4つのパラメータを調整します．
 これらのパラメータを0に設定すると，\textsf{slam\_gmapping}はオドメトリの情報を100\%信用するようになります．
@@ -50,5 +58,7 @@ GMappingではループとじ込みを明示的に行っていません．
 \subsection{変更の影響が不明なパラメータ}
 
 \textsf{ogain}は尤度を平滑化するゲインであると\textsf{slam\_gmapping}のソースコード中で説明されていますが，どこで使われているのかが不明です．
+
+また，\textsf{sigma}はスキャンマッチングのスコアを評価するときに使われるパラメータで，ビーム一本当たりのスコアの計算にこれが使われています\footnote{\url{https://github.com/ros-perception/openslam_gmapping/blob/6b9b23bf2a7ad7c04a33c6f52371c5621ffe613e/include/gmapping/scanmatcher/scanmatcher.h\#L186}}．
 
 \end{document}
