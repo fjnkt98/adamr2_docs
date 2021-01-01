@@ -1,0 +1,28 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{Navigation Stackで要求されるもの}
+
+Navigation Stackの実行には以下の要素が必要となります．
+
+\begin{itemize}
+  \item レーザースキャンのデータ(\textsf{sensor\_msgs/LaserScan}型のトピックメッセージ)
+  \item オドメトリのデータ(\textsf{/tf}トピックメッセージ)
+  \item オドメトリトピック(\textsf{geometry\_msgs/Odometry}の型トピックメッセージ)
+  \item (Optional)3D点群データ(\textsf{sensor\_msgs/PointCloud2}型のトピックメッセージ)
+  \item SLAMで作成した地図(\textsf{map.pgm}ファイルと\textsf{map.yaml}ファイル)
+\end{itemize}
+
+SLAMのときと同じく，レーザースキャンのデータとオドメトリデータが必要になります．
+Navigation Stackではオドメトリデータとして，TFだけでなくトピックとしてのオドメトリも必要になります．
+これは，ロボットの動作計画の際にロボットの現在の移動速度が必要になるからです．
+また，SLAMで作成した地図のデータも必要となります．
+Navigationを実行したい環境の地図を事前に作っておく必要があるということです．
+
+必須ではありませんが，3D点群データも使用することができます．
+点群データは障害物検知に使用することができます．
+レーザーセンサの高さに無い障害物が存在する可能性がある環境では，点群データを使用して障害物を検知することが有効になります．
+
+\end{document}
