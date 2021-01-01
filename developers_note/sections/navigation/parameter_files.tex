@@ -1,0 +1,88 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{パラメータファイルの記述}
+
+\subsection{ディレクトリ構造}
+
+ここからはパラメータファイルを記述していきます．
+Navigation Stackはいくつものノードが集まって自律走行を実現しているため，パラメータの数はこれまでと比べて膨大になります．
+従って，1つのファイルにパラメータを全て列挙するのではなく，ある程度ファイルやディレクトリを分割して記述することとします．
+
+具体的には，\textsf{adamr2\_navigation}パッケージの\textsf{config/}ディレクトリを\ref{code:directory_structure_of_adamr2_navigation_config}のようにし，1つのノードに対して1つのファイルを割り当てるようにします．
+
+\begin{lstlisting}[caption=Directory Structure of \textsf{config/}, label=code:directory_structure_of_adamr2_navigation_config]
+config/
+  ├ amcl/
+  │  └ amcl.yml
+  ├ costmap/
+  │  ├ global_costmap.yml
+  │  └ local_costmap.yml
+  ├ planner/
+  │  ├ global/
+  │  │  └ global_planner.yml
+  │  └ local/
+  │     └ trajectory_planner.yml
+  └ move_base.yml
+\end{lstlisting}
+
+\subsection{\textsf{amcl}のためのパラメータの記述}
+
+まずは自己位置推定パッケージ\textsf{amcl}のためのパラメータを記述していきます．
+\textsf{config/}ディレクトリ以下に\textsf{amcl}という名前のディレクトリを作り，その中に\textsf{amcl.yml}という名前のファイルを作成します．
+そして，コード\ref{code:amcl_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:amcl_yml, caption=\textsf{amcl.yml}]
+min_particles: 30   # default = 100
+max_particles: 1000 # default = 5000
+
+kld_err: 0.01 # default = 0.01
+kld_z: 0.99   # default = 0.99
+
+update_min_d: 0.05 # default = 0.2
+update_min_a: 0.05 # default = PI / 6.0 ~= 0.5
+
+resample_interval: 1      #  default = 2
+transform_tolerance: 0.3  # default = 0.1
+recovery_alpha_slow: 0.0  # default = 0.0
+recovery_alpha_fast: 0.0  # default = 0.0
+
+gui_publish_rate: 10.0  # default = -1.0[Hz](disable)
+
+save_pose_rate: 0.5     # defautl = 0.5
+use_map_topic: true     # defaut = false
+first_map_only: false   # default = false
+
+laser_min_range: -1.0               # default = -1.0
+laser_max_range: -1.0               # default = -1.0
+laser_max_beams: 60                 # default = 30
+laser_z_hit: 0.95                   # default = 0.95
+#laser_z_short: 0.05                # default = 0.1
+#laser_z_max: 0.05                  # default = 0.05
+laser_z_rand: 0.05                  # default = 0.05
+laser_sigma_hit: 0.02               # default = 0.2
+#laser_lambda_short: 0.1            # default = 0.1
+laser_likelihood_max_dist: 2.0      # default = 2.0
+laser_model_type: likelihood_field  # default = likelihood_field
+
+odom_model_type: diff-corrected # default = diff
+odom_alpha1: 0.2                # default = 0.2
+odom_alpha2: 0.2                # default = 0.2
+odom_alpha3: 0.2                # default = 0.2
+odom_alpha4: 0.2                # default = 0.2
+
+odom_frame_id: odom             # default = odom
+base_frame_id: base_footprint   # default = base_link
+global_frame_id: map            # default = map
+tf_broadcast: true              # default = true
+\end{lstlisting}
+
+\subsection{\textsf{costmap\_2d}のためのパラメータの記述}
+
+\subsection{\textsf{global\_planner}のためのパラメータの記述}
+
+\subsection{\textsf{base\_local\_planner}のためのパラメータの記述}
+
+\end{document}
