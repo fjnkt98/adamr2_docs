@@ -85,6 +85,45 @@ ROS REP:105に従って，\textsf{odom}という名前を付けておきます�
 直進速度と旋回速度に対してそれぞれ速度制限と加速度制限，更には躍度制限を付けることができます．
 ADAMR2ではハードウェアの仕様に合わせて，速度制限と加速度制限を適用しています．
 
+\textsf{pose\_covariance\_diagonal}と\textsf{twist\_covariance\_diagonal}は，コントローラが配信する\textsf{odom}トピック(TFではない)に載せる，それぞれ姿勢と速度のオドメトリの共分散行列の対角成分です．
+オドメトリによって求められたロボットの姿勢及び移動速度の，各次元の共分散の対角要素をリストとしてここに指定します．
+姿勢と速度の共分散行列はそれぞれ式\ref{eq:pose_covariance_matrix}と\ref{eq:twist_covariance_matrix}になります．
+オドメトリの共分散が各次元において独立と仮定することで，共分散行列は対角成分のみとなります．
+ロボットが移動する空間は2D平面ですが，共分散行列は3次元空間のものが使用されます．
+しかしロボットのオドメトリでは$x$，$y$とヨー角の情報しかなく，$z$及びロール角とピッチ角の情報は得られないので，そこに当たる共分散には十分大きな値を設定しておきます．
+
+この共分散は\textsf{odom}トピックに載せる情報であり，主にIMU等のセンサとのセンサフュージョンに使用されるものです．
+従って，センサフュージョンを使わないロボットの場合，この共分散の情報が使われることはありません．
+例えばADAMR2ではIMUを搭載しておらず，SLAMやNavigationでは\textsf{diff\_drive\_controller}によって提供されたTF情報のみを使って自己位置推定を行っています．
+そのためこの共分散行列の値はテキトーに設定してあります．
+適切な値を設定するためには，実機を何度も走らせてオドメトリの誤差の統計を取らなければなりません．
+
+\begin{equation}
+  V_{\text{pose}} =
+  \begin{pmatrix}
+    \sigma_{xx}^2 & 0 & 0 & 0 & 0 & 0 \\
+    0 & \sigma_{yy}^2 & 0 & 0 & 0 & 0 \\
+    0 & 0 & \sigma_{zz}^2 & 0 & 0 & 0 \\
+    0 & 0 & 0 & \sigma_{\text{roll}\cdot\text{roll}}^2 & 0 & 0 \\
+    0 & 0 & 0 & 0 & \sigma_{\text{pitch}\cdot\text{pitch}}^2 & 0 \\
+    0 & 0 & 0 & 0 & 0 & \sigma_{\text{yaw}\cdot\text{yaw}}^2 
+  \end{pmatrix}
+  \label{eq:pose_covariance_matrix}
+\end{equation}
+
+\begin{equation}
+  V_{\text{twist}} =
+  \begin{pmatrix}
+    \sigma_{xx}^2 & 0 & 0 & 0 & 0 & 0 \\
+    0 & \sigma_{yy}^2 & 0 & 0 & 0 & 0 \\
+    0 & 0 & \sigma_{zz}^2 & 0 & 0 & 0 \\
+    0 & 0 & 0 & \sigma_{\text{roll}\cdot\text{roll}}^2 & 0 & 0 \\
+    0 & 0 & 0 & 0 & \sigma_{\text{pitch}\cdot\text{pitch}}^2 & 0 \\
+    0 & 0 & 0 & 0 & 0 & \sigma_{\text{yaw}\cdot\text{yaw}}^2 
+  \end{pmatrix}
+  \label{eq:twist_covariance_matrix}
+\end{equation}
+
 \textsf{diff\_drive\_controller}が取るROSパラメータについてのより詳細な情報は，ROS Wikiを参照してください．
 
 \end{document}
