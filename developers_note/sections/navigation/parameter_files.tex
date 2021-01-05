@@ -79,10 +79,292 @@ global_frame_id: map            # default = map
 tf_broadcast: true              # default = true
 \end{lstlisting}
 
+ほとんどの項目はデフォルト値のままにしています．
+SLAMのときと同じく，\textsf{base\_frame\_id}はロボットのURDF構造に合わせて書き換えましょう．
+
 \subsection{\textsf{costmap\_2d}のためのパラメータの記述}
+
+次にコストマップのパラメータを設定していきます．
+コストマップとはロボットの自律走行の際に用いられる，障害物の存在確率を示す占有格子地図の事です．
+単に障害物の情報を表現するだけでなく，ロボットの輪郭形状を考慮してロボットが移動可能な領域を示す役割も果たします．
+コストマップはNavigation Stackの3つの主要機能(自己位置推定，経路計画，コストマップ)の内の1つであり，これの設定を適切に行わなければ，うまくナビゲーションを行うことができません．
+
+Navigation Stackにおいては，\textsf{costmap\_2d}というパッケージがコストマップを提供します．
+パッケージは\textsf{move\_base}からプラグインとして利用されます．
+\textsf{move\_base}はグローバルとローカルの2つのコストマップを持ち，各々のコストマップのパラメータはそれぞれ以下のような名前空間で区切られて管理されます．
+
+\begin{itemize}
+  \item グローバルコストマップ：\textsf{move\_base/global\_costmap/**}
+  \item ローカルコストマップ：\textsf{move\_base/local\_costmap/**}
+\end{itemize}
+
+グローバルとローカルのコストマップが別々のインスタンスとして\textsf{move\_base}に使用されますが，元となっているクラスは同じものです．
+パラメータの設定によってローカルコストマップのように振る舞ったり，グローバルコストマップのように振る舞ったりするだけです．\cite{costmap_2d_configuration}
+
+\textsf{costmap\_2d}のパラメータ設定の仕様はHydroから大きく変わっており，Hydroより以前のパラメータ設定の構文はPre-Hydro形式と呼ばれています．
+多くのネット記事や日本語のROS書籍ではPre-Hydro形式でコストマップの設定を行っているのですが，やはり最新の形式で設定するのが良いでしょう．
+
+まずグローバルコストマップとローカルコストマップのそれぞれのパラメータを記述するファイルを作ります．
+コード\ref{code:directory_structure_of_adamr2_navigation_config}を参考に，\textsf{global\_costmap.yml}と\textsf{local\_costmap.yml}という名前のファイルを作成します．
+そして，コード\ref{code:global_costmap_yml}，コード\ref{code:local_costmap_yml}のようにそれぞれ記述します．
+
+\begin{lstlisting}[language=YAML, label=code:global_costmap_yml, caption=\textsf{global\_costmap.yml}]
+global_costmap:
+  # Plugins
+  plugins:
+    - {name: static_layer, type: "costmap_2d::StaticLayer"}
+    - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+  
+  # Coordinate frame and tf parameters
+  global_frame: map
+  robot_base_frame: base_footprint
+  transform_tolerance: 0.2  # default: 0.2
+  footprint: [[0.35, 0.225], [0.35, -0.225], [-0.37, -0.225], [-0.37, 0.225]]
+
+  # Rate parameters
+  update_frequency: 2.0     # default: 5.0
+  publish_frequency: 2.0    # default: 0.0(disable)
+
+  # Map management parameters
+  rolling_window: false           # default: false
+  always_send_full_costmap: false # default:false
+
+  # parameters of each plugins
+  static_layer:
+    unknown_cost_value: -1      # default: -1
+    lethal_cost_threshold: 100  # default: 100
+    map_topic: map              # default: map
+    first_map_only: false       # default: false
+    subscribe_to_updates: false # default: false
+    track_unknown_space: true   # default: true
+    use_maximum: false          # default: false
+    trinary_costmap: true       # default: true
+
+  obstacle_layer:
+    observation_sources: laser_scan
+    laser_scan:
+      topic: /adamr2/scan
+      sensor_frame: lidar_link
+      observation_persistence: 0.0  # default: 0.0
+      expected_update_rate: 0.2     # default: 0.0
+      data_type: LaserScan
+      clearing: true        # default: false
+      marking: true         # default: true
+      obstacle_range: 2.5   # default: 2.5
+      raytrace_range: 3.0   # default: 3.0
+      inf_is_valid: true   # default: false
+
+  inflation_layer:
+    inflation_radius: 0.5      # default: 0.55
+    cost_scaling_factor: 3.66   # default: 10.0
+\end{lstlisting}
+
+\begin{lstlisting}[language=YAML, label=code:local_costmap_yml, caption=\textsf{local\_costmap.yml}]
+local_costmap:
+  # Plugins
+  plugins:
+    - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+  # Coordinate frame and tf parameters
+  global_frame: odom
+  robot_base_frame: base_footprint
+  transform_tolerance: 0.2  # default: 0.2
+  footprint: [[0.35, 0.225], [0.35, -0.225], [-0.37, -0.225], [-0.37, 0.225]]
+
+  #  Rate parameters
+  update_frequency: 5.0    # default: 5.0
+  publish_frequency: 5.0   # default: 0.0
+
+  # Map management parameters
+  rolling_window: true
+  always_send_full_costmap: false
+  width: 8.0        # default: 10.0
+  height: 8.0       # default: 10.0
+  resolution: 0.05  # default: 0.05
+
+  # parameters of each plugins
+  obstacle_layer:
+    observation_sources: laser_scan pointcloud_sensor
+    laser_scan:
+      topic: /adamr2/scan
+      sensor_frame: lidar_link
+      observation_persistence: 0.0  # default: 0.0
+      expected_update_rate: 0.2     # default: 0.0
+      data_type: LaserScan
+      clearing: true        # default: false
+      marking: true         # default: true
+      obstacle_range: 2.5   # default: 2.5
+      raytrace_range: 3.0   # default: 3.0
+      inf_is_valid: false   # default: false
+    pointcloud_sensor:
+      topic: /adamr2/camera/depth/color/points
+      sensor_frame: camera_depth_frame
+      observation_persistence: 0.0  # default: 0.0
+      expected_update_rate: 0.1     # default: 0.0
+      data_type: PointCloud2
+      clearing: true            # default: false
+      marking: true             # default: true
+      max_obstacle_height: 1.0  # default: 2.0
+      min_obstacle_height: 0.1  # default: 0.0
+      obstacle_range: 2.5       # default: 2.5
+      raytrace_range: 3.0       # default: 3.0
+      inf_is_valid: false       # default: false
+
+  inflation_layer:
+    inflation_radius: 0.4     # default: 0.55
+    cost_scaling_factor: 3.66 # default: 10.0
+\end{lstlisting}
+
+コストマップは各種レイヤーのプラグインを積み重ねていくことで設定します．
+使用されるレイヤーは主に以下の4つです．
+
+\begin{enumerate}
+  \item \textsf{costmap\_2d::StaticLayer}：SLAMで作成した静的な地図を読み込むレイヤーです．
+  \item \textsf{costmap\_2d::ObstacleLayer}：センサで観測した障害物の情報を記録するレイヤーです．
+  \item \textsf{costmap\_2d::InflationLayer}：マップ上の障害物を任意の半径に膨張させるレイヤーです．
+  \item \textsf{range\_sensor\_layer::RangeSensorLayer}：超音波センサ等のデータを記録するレイヤーです．
+\end{enumerate}
+
+ここでは上3つを使用します．
+グローバル・ローカルで共通なのは\textsf{costmap\_2d::ObstacleLayer}と\textsf{costmap\_2d::InflationLayer}です．
+\textsf{costmap\_2d::StaticLayer}はグローバルコストマップでのみ使用し，ローカルコストマップでは使用しません．
+理由は，ローカルコストマップは主にロボットの周辺の動的な障害物の情報を得るために使用するものなので，静的な情報は必要としないからです．
+\textsf{costmap\_2d::ObstacleLayer}は\textsf{sensor\_msgs/LaserScan}型トピックと\textsf{sensor\_msgs/PointCloud2}型トピックを受け取ることができ，それらの情報をもとに障害物の情報を表示します．
+記事によってはグローバルコストマップでこのレイヤーを使用しない設定にしているものがあります．しかしその場合，人等の障害物が現れた際にグローバルパスがそれを考慮できなくなるため，ここではグローバルコストマップにも障害物レイヤーを適用しています．
+\textsf{costmap\_2d::InflationLayer}はコストマップ上の障害物を表すセルを膨張させ，障害物セルの周りのセルも障害物として扱えるようにします．
+これにより，ロボットを障害物に近づけさせない処理が実現できます．
+ただし，この膨張範囲を大きく設定しすぎるとコストマップ全てが障害物セルで埋め尽くされてしまうため，環境に合わせて適切に設定する必要があります．
+
+各プラグインを使用するには，\textsf{global\_costmap/plugins}パラメータに使用するプラグインを列挙しなければなりません．
+その後，各プラグインに対する設定を記述します．
 
 \subsection{\textsf{global\_planner}のためのパラメータの記述}
 
+次にグローバルパスプランナのパラメータ設定をします．
+グローバルパスプランナのパッケージは標準で\textsf{navfn}と\textsf{global\_planner}の2つがありますが，後から実装された\textsf{global\_planner}を使用するのが良いでしょう．
+これらのパッケージもコストマップと同様に\textsf{move\_base}からプラグインとして使用されます．
+どのパスプランナを使用するかは\textsf{/move\_base/base\_global\_planner}パラメータで指定します．
+
+コード\ref{code:directory_structure_of_adamr2_navigation_config}を参考に，\textsf{global\_planner.yml}という名前のファイルを作成します．
+そして，コード\ref{code:global_planner_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:global_planner_yml, caption=\textsf{global\_planner.yml}]
+base_global_planner: global_planner/GlobalPlanner
+  GlobalPlanner:
+    allow_unknown: true         # default: true
+    default_tolerance: 0.3      # default: 0.0
+    visualize_potential: false  # default: false
+    use_dijkstra: true          # default: true
+    use_quadratic: true         # default: true
+    use_grid_path: false        # default: false
+    old_navfn_behavior: false   # default: false
+    lethal_cost: 253            # default: 253
+    neutral_cost: 50            # default: 50
+    cost_factor: 0.8            # default: 0.8
+    publish_potential: false    # default: ture
+    orientation_mode: 0         # default: 0
+    orientation_window_size: 1  # default: 1
+\end{lstlisting}
+
+\textsf{global\_planner}のパラメータはデフォルト値でも十分動作します．
+ユーザの環境によって調整が必要となるのは\textsf{lethal\_cost}，\textsf{neutral\_cost}，\textsf{cost\_factor}の3つです．
+詳細なチューニングの仕方については後の節で説明します．
+
 \subsection{\textsf{base\_local\_planner}のためのパラメータの記述}
+
+次にローカルパスプランナのパラメータを設定します．
+ローカルパスプランナも\textsf{move\_base}からプラグインとして使用され，パラメータの設定によってどのプランナを使用するかを指定できます．
+Navigation Stackに標準で実装されているローカルパスプランナは以下の2つです．
+
+\begin{enumerate}
+  \item \textsf{base\_local\_planner}
+  \item \textsf{dwa\_local\_planner}
+\end{enumerate}
+
+どちらもDynamic Window Approach\cite{dwa}を使用していますが，\textsf{dwa\_local\_planner}は\textsf{base\_local\_planner}の再実装版で，性能はこちらの方が上と思われます．
+しかし\textsf{dwa\_local\_planner}はその場旋回を行うことがうまくできず，ロボットの向きの反対側に目的地を設定したときの挙動がちょっと怪しかったので，\textsf{base\_local\_planner}の方を使用することにしました．
+
+これまでと同様に，コード\ref{code:directory_structure_of_adamr2_navigation_config}を参考にして\textsf{trajectory\_planner.yml}というファイルを作ります．
+そして，コード\ref{code:trajectory_planner_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:trajectory_planner_yml, caption=\textsf{trajectory\_planner.yml}]
+base_local_planner: base_local_planner/TrajectoryPlannerROS
+TrajectoryPlannerROS:
+  # Robot Configuration Parameters
+  acc_lim_x: 0.75        # default: 2.5
+  acc_lim_theta: 3.14    # default: 3.2
+
+  max_vel_x: 0.3                # default: 0.5
+  min_vel_x: 0.1                # default: 0.1
+  max_rotational_vel: 1.57      # default: 1.0
+  min_in_place_vel_theta: 0.2   # default: 0.4
+  escape_vel: -0.2              # default: -0.1
+
+  holonomic_robot: false  # default: true
+
+  # Goal Tolerance Parameters
+  yaw_goal_tolerance: 0.1       # default: 0.05
+  xy_goal_tolerance: 0.25       # default: 0.10
+  latch_xy_goal_tolerance: true # default: false
+
+  # Forward Simulation Parameters
+  sim_time: 4.0                     # default: 1.0
+  sim_granularity: 0.050            # default: 0.025
+  angular_sim_granularity: 0.1      # default: 0.025
+  vx_samples: 20                    # default: 3
+  vtheta_samples: 40                # default: 20
+  #controller_frequency: 10.0        # default: 20.0
+
+  # Trajectory Scoring Parameters
+  meter_scoring: true           # default: false
+  path_distance_bias: 2.0       # default: 0.6
+  goal_distance_bias: 0.8       # default: 0.8
+  occdist_scale: 0.02           # default: 0.01
+  heading_lookahead: 0.325      # default: 0.325
+  heading_scoring: true         # default: false
+  heading_scoring_timestep: 0.8 # default: 0.8
+  dwa: true                     # default: true
+  publish_cost_grid_pc: true    # default: false
+  global_frame_id: odom         # default: odom
+
+  # Oscillation Prevention Parameters
+  oscillation_reset_dist: 0.1  # default: 0.05
+
+  # Global Plan Parameters
+  prune_plan: true  # default: true
+\end{lstlisting}
+
+こちらもとりあえずデフォルト値を多めに設定しています．
+尚，コード\ref{code:trajectory_planner_yml}では\textsf{controller\_frequency}というパラメータをコメントアウトしていますが，これは\textsf{move\_base}本体で設定することが推奨されるパラメータだからです．
+\textsf{move\_base}にも\textsf{controller\_frequency}というパラメータが存在しており，ローカルプランナ側でこのパラメータが設定されていなかった場合，\textsf{move\_base}側の値が適用されるようになっています．
+制御周期は\textsf{move\_base}側で設定できた方が好ましいので，このように設定しています．
+
+\subsection{\textsf{move\_base}のパラメータ設定}
+
+最後に\textsf{move\_base}本体のパラメータを設定します．
+\textsf{move\_base.yml}という名前のファイルを作成し，コード\ref{code:move_base_yml}のように記述します．
+
+\begin{lstlisting}[language=YAML, label=code:move_base_yml, caption=\textsf{move\_base.yml}]
+controller_frequency: 5.0  # default: 20.0
+controller_patience: 15.0   # default: 15.0
+
+planner_frequency: 1.0  # default: 0.0
+planner_patience: 5.0   # default: 5.0
+
+conservative_reset_dist: 3.0    # default: 3.0
+recovery_behavior_enabled: true # default: true
+clearing_rotation_allowed: true # default: true
+shutdown_costmaps: false        # default: false
+
+oscillation_timeout: 5.0    # default: 0.0
+oscillation_distance: 0.2   # default: 0.5
+
+max_planning_retries: 10    # default: -1
+\end{lstlisting}
+
+\textsf{move\_base.yml}では自律走行エージェントのマクロ的な挙動に関する数値を設定します．
+各パラメータの詳細な意味については後の章で説明します．
 
 \end{document}
