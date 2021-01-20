@@ -1,0 +1,37 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+\section{Navigationの実行}
+
+いよいよNavigationを実行します．
+Navigationを実行する前に，ロボットを起動しておきます．
+起動する必要があるのは，ロボットのコントローラ，RPLIDAR，Realsenseの3つです．
+以下のコードを各々のターミナルで実行します．
+
+\begin{lstlisting}[language=sh]
+roslaunch adamr2_control adamr2_control.launch
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh]
+roslaunch adamr2_bringup rplidar_a2.launch
+\end{lstlisting}
+
+\begin{lstlisting}[language=sh]
+roslaunch adamr2_bringup realsense.launch
+\end{lstlisting}
+
+ロボットが走行可能な状態になり，センサのデータが正しく配信されるようになれば準備は完了です．
+コード\ref{code:execute_navigation}を実行して，Navigation Stackの各ノードを起動します．
+コード\ref{code:execute_navigation}を実行する前に，目的の\textsf{map.yaml}があるディレクトリに移動しておくことを忘れないようにしてください．
+
+\begin{lstlisting}[language=sh, label=code:execute_navigation, caption=Execute Navigation]
+roslaunch adamr2_navigation adamr2_navigation.launch map_file:=`pwd`/map.yaml
+\end{lstlisting}
+
+Navigation Stackの各種ノードを起動した後は，\textsf{rviz}上で目的地を指定してやれば，自律走行が開始されます．
+ただし，パラメータチューニングを行わないとロボットが正しく動かない場合があります(むしろデフォルトのパラメータで動くロボットの方が少ないかもしれません)．
+具体的なパラメータチューニングについては\ref{chap:navigation_parameter_tuning}章で述べます．
+
+\end{document}
