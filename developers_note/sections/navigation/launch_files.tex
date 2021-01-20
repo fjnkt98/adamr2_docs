@@ -5,5 +5,67 @@
 
 \section{launchファイルの記述}
 
+Navigation Stackのノードを実行するlaunchファイルを記述します．
+1つのlaunchファイルで\textsf{move\_base}，\textsf{amcl}，\textsf{map\_server}，\textsf{rviz}を一斉に起動するようにします．
+
+\textsf{adamr2\_navigation}パッケージの\textsf{launch/}ディレクトリに\textsf{adamr2\_navigation.launch}という名前のファイルを作成し，コード\ref{code:adamr2_navigation_launch}のように記述します．
+
+\begin{lstlisting}[language=XML, label=code:adamr2_navigation_launch, caption=\textsf{adamr2\_navigation.launch}]
+<launch>
+  <!--
+    Path to the map file(.yaml) for map_server node.
+    When execute this launch file, it's useful to move the directory
+    where the map.yaml file is located and enter as follows:
+      map_file:=`pwd`/map.yaml
+  -->
+  <arg name="map_file" default=""/>
+
+  <!-- Arguments for each nodes -->
+  <arg name="frame_id" default="map"/>
+
+  <arg name="amcl_param_file" default="$(find adamr2_navigation)/config/amcl/amcl.yml"/>
+
+  <arg name="global_costmap_param_file" default="$(find adamr2_navigation)/config/costmap/global_costmap.yml"/>
+  <arg name="local_costmap_param_file"  default="$(find adamr2_navigation)/config/costmap/local_costmap.yml"/>
+  <arg name="global_planner_param_file" default="$(find adamr2_navigation)/config/planner/global/global_planner.yml"/>
+  <arg name="local_planner_param_file"  default="$(find adamr2_navigation)/config/planner/local/trajectory_planner.yml"/>
+  <arg name="move_base_param_file"      default="$(find adamr2_navigation)/config/move_base.yml"/>
+
+  <group unless="$(eval map_file=='')">
+    <!-- MAP SERVER -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+      <param name="frame_id" value="$(arg frame_id)"/>
+    </node>
+
+    <!-- AMCL -->
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+      <rosparam file="$(arg amcl_param_file)" command="load" />
+      <remap from="scan" to="/adamr2/scan"/>
+    </node>
+
+    <!-- MOVE BASE -->
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+      <rosparam file="$(arg global_costmap_param_file)" command="load"/>
+      <rosparam file="$(arg local_costmap_param_file)"  command="load"/>
+      <rosparam file="$(arg global_planner_param_file)" command="load"/>
+      <rosparam file="$(arg local_planner_param_file)"  command="load"/>
+      <rosparam file="$(arg move_base_param_file)"      command="load"/>
+
+      <remap from="cmd_vel" to="/adamr2/diff_drive_controller/cmd_vel"/>
+      <remap from="odom"    to="/adamr2/diff_drive_controller/odom"/>
+    </node>
+
+    <!-- Rviz -->
+    <node name="rviz" pkg="rviz" type="rviz"/>
+  </group>
+</launch>
+\end{lstlisting}
+
+このlaunchファイルはコマンド実行時に1つの引数\textsf{map\_file}を必要とします．
+Navigation Stackの実行には事前地図が必須になります．
+\textsf{map\_server}ノードに地図を渡すために，SLAMで作成した地図のフルパスを引数として渡さなければなりません．
+とはいえ，いちいちフルパスを入力するのは面倒なので，ソースコードに記載しているように，地図のファイル(\textsf{map.yaml}のことです．同じディレクトリに\textsf{map.pgm}も存在する必要があります)があるディレクトリをターミナルで開き，\textsf{pwd}コマンドを使ってパスを入力するやり方が便利です．
+引数\textsf{map\_file}が入力されていない場合，各ノードは起動しません．
+この挙動は21行目の\textsf{group}タグによるものです．
 
 \end{document}
