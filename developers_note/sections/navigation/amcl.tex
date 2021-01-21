@@ -1,0 +1,149 @@
+\documentclass[{../../master}]{subfiles}
+\graphicspath{{../../}}  % 個別コンパイル時の画像パスを解決する
+
+\begin{document}
+
+この章ではNavigation Stackの各パッケージのパラメータのチューニング方法について解説します．
+
+移動ロボットの自律走行を適切に行うためには，ロボットの仕様や動作環境等に合わせた最適なパラメータを設定する必要があります．
+しかし，パラメータチューニングを行うためには，各々のノードがどのようなアルゴリズムで処理を行っているかをある程度把握している必要があります．
+本章ではNavigation Stackの各ノードのパラメータチューニングを行うための情報について，アルゴリズムやデータ構造について言及しながら解説していきます．
+
+尚，本章の解説は筆者が理解できた範囲での説明となります．
+ここで解説する内容が絶対的に正しいという保証はありません．
+間違いや説明抜け等が存在するため，あくまで参考程度にするようにしてください．
+
+\section{\textsf{amcl}について}
+
+\textsf{amcl}は与えられた地図，ホイールオドメトリ情報，レーザースキャンデータからMonte Carlo Localizationによってロボットの自己位置推定を行うパッケージです．
+\textsf{amcl}ではKLDサンプリングによるリサンプリング\cite{amcl}とAugmented MCL\cite{thrun2005probabilistic}が実装されていて，前者によってパーティクル数を可変にし，後者によってセンサリセットを実現しています．
+
+\subsection{\textsf{amcl}のパラメータ}
+
+ROS Wikiより，\textsf{amcl}ノードが使用するパラメータを列挙します．
+
+\subsubsection{フィルタ全般に関するパラメータ}
+
+\begin{itemize}
+  \item \textsf{min\_particle} \\
+    int型，default: 100 \\
+    パーティクルフィルタで使用するパーティクルの最低数です．
+  \item \textsf{max\_particle} \\
+    int型，default: 5000 \\
+    パーティクルフィルタで使用するパーティクルの最大数です．
+  \item \textsf{kld\_err} \\
+    double型，default: 0.01 \\
+    KLDサンプリングにおける，真の信念分布と推定信念分布との誤差の最大許容量です．このパラメータを小さくすると自己位置推定の精度は向上しますが，パーティクル数が増大して計算量が大きくなります．
+  \item \textsf{kld\_z} \\
+    double型，default: 0.99 \\
+    KLDサンプリングにおける，「信念分布の誤差が\textsf{kld\_err}未満になる確率$p$」に対する確率$1-p$の標準正規分布の分位数です．このパラメータを大きく設定すると，誤差が許容量未満になる確率が大きくなるため，必要なパーティクル数が増大します．
+  \item \textsf{update\_min\_d} \\
+    double型，default: 0.2 \\
+    パーティクルフィルタの更新を行うために必要な最小並進移動距離です．この距離を移動しなければパーティクルフィルタは更新されません．
+  \item \textsf{update\_min\_a} \\
+    double型，default: $\pi /6$ \\
+    パーティクルフィルタの更新を行うために必要な最小旋回移動距離です．この距離を移動しなければパーティクルフィルタは更新されません．
+  \item \textsf{resample\_interval} \\
+    パーティクルのリサンプリングを行うために必要なフィルタの更新回数です．ここで指定した回数だけフィルタが更新されなければリサンプリングは実行されません．
+  \item \textsf{transform\_tolerance} \\
+    double型，default: 0.1 \\
+    \textsf{amcl}が推定した自己位置(\textsf{map} $\rightarrow$ \textsf{odom}のTF)のタイムスタンプを，ここで指定した時間だけ実際の時刻より未来にします．
+  \item \textsf{recovery\_alpha\_slow} \\
+    double型，default: 0.0 \\
+    Augmented MCLにおける，周辺尤度$\alpha$の平均重みフィルタの減衰率です．
+  \item \textsf{recovery\_alpha\_slow} \\
+    double型，default: 0.0 \\
+    Augmented MCLにおける，周辺尤度$\alpha$の平均重みフィルタの減衰率です．
+  \item \textsf{initial\_pose\_x} \\
+    double型，default: 0.0 \\
+    初期姿勢の$x$座標の平均値です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{initial\_pose\_y} \\
+    double型，default: 0.0 \\
+    初期姿勢の$y$座標の平均値です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{initial\_pose\_a} \\
+    double型，default: 0.0 \\
+    初期姿勢の向きの平均値です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{initial\_cov\_xx} \\
+    double型，default: 0.0 \\
+    初期姿勢の$x$座標の共分散です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{initial\_cov\_yy} \\
+    double型，default: 0.0 \\
+    初期姿勢の$y$座標の共分散です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{initial\_cov\_aa} \\
+    double型，default: 0.0 \\
+    初期姿勢の向きの共分散です．正規分布とともにフィルタの初期化に使用されます．
+  \item \textsf{gui\_publish\_rate} \\
+    double型，default: -1.0 \\
+    レーザースキャンと軌跡を可視化する際の最大配信周期です．負の値を設定するとデータの配信が無効化されます．
+  \item \textsf{save\_pose\_rate} \\
+    double型，default: 0.5 \\
+    最後に推定された姿勢を\textsf{initial\_pose\_*}と\textsf{initial\_cov\_*}としてパラメータサーバーに保存する頻度の最大値です．保存された姿勢は，後にもう一度\textsf{amcl}を実行する際にフィルタを初期化するために使用されます．
+  \item \textsf{use\_map\_topic} \\
+    bool型，default: \textsf{false} \\
+    このパラメータを\textsf{true}に設定すると，\textsf{amcl}は地図を受信するためにサービスコールを行うのではなく，トピックを購読するようになります．
+  \item \textsf{first\_map\_only} \\
+    bool型，default: \textsf{false} \\
+    このパラメータを\textsf{true}に設定すると，\textsf{amcl}は新しい地図を受信するたびに地図を更新するのではなく，最初に購読した地図のみを使用するようになります．
+  \item \textsf{selective\_resampling} \\
+    bool型，default: \textsf{false} \\
+    このパラメータを\textsf{true}に設定すると，GMappingで採用されている$N_{\text{eff}}$の値を基準としたリサンプリング処理が行われるようになります．
+\end{itemize}
+
+\subsubsection{レーザーモデルに関するパラメータ}
+
+\textsf{amcl}ではレーザースキャンの観測モデルとして，``beam model''と``likelihood-field model''の2つをサポートしています．
+各パラメータは各モデルの確率分布の重み付け係数と形状パラメータです．
+
+``beam model''では\textsf{z\_hit}，\textsf{z\_short}，\textsf{z\_max}，\textsf{z\_rand}の4つが使用されます．
+``likelihood-field model''では\textsf{z\_hit}と\textsf{z\_rand}の2つのみが使われます．
+どちらのモデルを使う場合でも，各重み係数は和が1.0になるようにしなければなりません．
+
+\begin{itemize}
+  \item \textsf{laser\_min\_range} \\
+    double型，default: -1.0 \\
+    レーザーの最小距離を指定します．負の値が設定された場合，\textsf{sensor\_msgs/LaserScan}メッセージに含まれている値を使用します．
+  \item \textsf{laser\_max\_range} \\
+    double型，default: -1.0 \\
+    レーザーの最大距離を指定します．負の値が設定された場合，\textsf{sensor\_msgs/LaserScan}メッセージに含まれている値を使用します．
+  \item \textsf{laser\_max\_beams} \\
+    int型，default: 30 \\
+    1スキャン当たりに使用するレーザービームの数を指定します．デフォルトの設定だと，1スキャンのうち等間隔に30個のビームだけ抜き出してフィルタ処理に使用することになります．
+  \item \textsf{laser\_z\_hit} \\
+    double型，default: 0.95 \\
+    観測モデルのうち，正規分布成分の重み係数です．
+  \item \textsf{laser\_z\_short} \\
+    double型，default: 0.1 \\
+    観測モデルのうち，指数分布成分の重み係数です．
+  \item \textsf{laser\_z\_max} \\
+    double型，default: 0.05
+    観測モデルのうち，無限値観測に起因する一様分布成分の重み係数です．
+  \item \textsf{laser\_z\_rand} \\
+    double型，default: 0.05 \\
+    観測モデルのうち，ランダム観測に起因する一様分布成分の重み係数です．
+  \item \textsf{laser\_sigma\_hit} \\
+    double型，default: 0.2 \\
+    正規分布に従うノイズの標準偏差です．単位はメートルです．
+  \item \textsf{laser\_lambda\_short} \\
+    double型，default: 0.1 \\
+    指数分布に従うノイズのパラメータです．
+  \item \textsf{laser\_likelihood\_max\_dist} \\
+    double型，default: 2.0 \\
+    尤度場モデルにおいて，地図上の障害物からどれだけの距離を膨張させるかを指定します．
+  \item \textsf{laser\_model\_type} \\
+    string型，default: ``likelihood\_field''  \\
+    観測モデルの種類を指定します．\textsf{beam}，\textsf{likelihood\_field}，\textsf{likelihood\_field\_prob}の3つから指定できます．
+    \textsf{likelihood\_field\_prob}は\textsf{likelihood\_field}とほぼ同じですが，有効化されている場合はビームスキップ処理を行います．
+  \item \textsf{do\_beamskip} \\
+    bool型，default: false \\
+    ビームスキップ処理を行うかどうかを指定します．
+  \item \textsf{beam\_skip\_distance}
+  \item \textsf{beam\_skip\_threshold}
+\end{itemize}
+
+\subsubsection{オドメトリモデルに関するパラメータ}
+
+\subsection{\textsf{amcl}のアルゴリズム}
+
+\subsection{パラメータチューニング}
+
+\end{document}
