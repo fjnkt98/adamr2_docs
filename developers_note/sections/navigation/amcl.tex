@@ -197,6 +197,48 @@ ROS Wikiより，\textsf{amcl}ノードが使用するパラメータを列挙�
 
 \subsection{KLDサンプリング}
 
+\textsf{amcl}はKLDサンプリング\cite{amcl}というアルゴリズムを用いることで，パーティクルの数を可変にしています．
+KLDサンプリングは，ロボットの姿勢の真の信念分布とパーティクルによって近似した分布との誤差を数値化し，誤差が閾値$\varepsilon$を超えてしまう確率が$\delta$以内に収まるように，パーティクルの数を決定します．
+
+真の信念分布とパーティクルによる分布との誤差を数値化するために，カルバック・ライブラー情報量(Kullback-Leibler divergence)というものが使用されます．
+KLDサンプリングの具体的なアルゴリズムの導出については，筆者の理解が追いついていないのでここでは説明できません．
+元となった論文を読むか，詳解確率ロボティクス\cite{上田2019}第7章に詳細が記述されているので，そちらを参考にして下さい．
+
+まず，カルバック・ライブラー情報量(KL情報量)の概要について(筆者が理解できた範囲で)説明します．
+KL情報量は，状態空間$\chi$中の2つの確率密度関数$p$，$q$に対して，
+
+\begin{equation}
+  \begin{split}
+    D_{\text{KL}}(p \mid\mid q) &= \int_{\bm{x} \in \chi} p(\bm{x}) \log{\frac{p(\bm{x})}{q(\bm{x})}}d\bm{x} \\
+    &= \langle \log{\frac{p(\bm{x})}{q(\bm{x})}} \rangle_{p(\bm{x})} \\
+    &= \langle \log{p(\bm{x})} \rangle_{p(\bm{x})} - \langle \log{q(\bm{x})} \rangle_{p(\bm{x})}
+  \end{split}
+\end{equation}
+
+\noindent
+と定義されます．
+ただし，$\langle z \rangle_{p(z)}$は確率分布$p(z)$に従う確率変数$z$の期待値で，$E_{p(z)}[z]$とも表記されます．
+離散的な状態空間$M$中の確率分布$P$，$Q$の場合でも同様に，
+
+\begin{equation}
+  D_{\text{KL}}(P \mid\mid Q) = \sum_{s \in M} P(s)\log{\frac{P(s)}{Q(s)}} = \langle \log{P(s)} \rangle_{P(s)} - \langle \log{Q(s)} \rangle_{P(s)}
+\end{equation}
+
+\noindent
+と定義されます．
+ただし，$s$は離散的な状態空間の中の一区画で，ビンと呼ばれるものです．
+
+2つの確率分布$p$，$q$もしくは$P$，$Q$が一致するとき，対数の中の分数が1になるため，KL情報量は0になります．
+それ以外の場合は，KL情報量は常に正の値を取ります．
+
+\textsf{amcl}では状態空間を離散化して考えます．
+2次元平面を移動するロボットが取る姿勢は$\bm{x} = (x, y, \theta)^T$の3次元なので，状態空間は3次元になります．
+それぞれの軸を等間隔に区切ると，状態空間は網目になります．
+そのうちの1区画を$s$とし，それぞれの区画を区別するため，$s_0, s_1, \ldots, s_{k-1}$のようにインデックスを付与します．
+ビンの数は$k$個になります．
+
+そして，各ビン$s_j$内に真の姿勢$\bm{x}^*$が存在する確率を考えます．
+
 \subsection{Augmented MCL}
 
 \subsection{レーザースキャンのビームモデル}
