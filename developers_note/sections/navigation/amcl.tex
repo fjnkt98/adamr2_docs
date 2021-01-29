@@ -18,6 +18,12 @@
 \textsf{amcl}は与えられた地図，ホイールオドメトリ情報，レーザースキャンデータからMonte Carlo Localizationによってロボットの自己位置推定を行うパッケージです．
 \textsf{amcl}ではKLDサンプリングによるリサンプリング\cite{amcl}とAugmented MCL\cite{thrun2005probabilistic}が実装されていて，前者によってパーティクル数を可変にし，後者によってセンサリセットを実現しています．
 
+\subsection{\textsf{amcl}の入力と出力}
+
+\textsf{amcl}はレーザースキャン(\textsf{sensor\_msgs/LaserScan}型メッセージ)と，オドメトリ座標系からロボットのベースフレームまでのTF(デフォルトでは``odom''から``base\_link''の間のTF)を入力として受け取り，推定結果として地図座標系からオドメトリ座標系までのTFを出力します．
+
+オドメトリとして必要なのはあくまでTFであり，トピックメッセージとしてのオドメトリ(\textsf{geometry\_msgs/Odometry}型メッセージ)は必要ありません．
+
 \subsection{\textsf{amcl}のパラメータ}
 
 ROS Wikiより，\textsf{amcl}ノードが使用するパラメータを列挙します．
@@ -51,7 +57,7 @@ ROS Wikiより，\textsf{amcl}ノードが使用するパラメータを列挙�
   \item \textsf{recovery\_alpha\_slow} \\
     double型，default: 0.0 \\
     Augmented MCLにおける，周辺尤度$\alpha$の平均重みフィルタの減衰率です．
-  \item \textsf{recovery\_alpha\_slow} \\
+  \item \textsf{recovery\_alpha\_fast} \\
     double型，default: 0.0 \\
     Augmented MCLにおける，周辺尤度$\alpha$の平均重みフィルタの減衰率です．
   \item \textsf{initial\_pose\_x} \\
@@ -136,14 +142,69 @@ ROS Wikiより，\textsf{amcl}ノードが使用するパラメータを列挙�
   \item \textsf{do\_beamskip} \\
     bool型，default: false \\
     ビームスキップ処理を行うかどうかを指定します．
-  \item \textsf{beam\_skip\_distance}
-  \item \textsf{beam\_skip\_threshold}
+  \item \textsf{beam\_skip\_distance} \\
+    double型，default: 0.5 \\
+    ビームが地図とマッチしているかどうかを判断するための閾値です．
+    ビーム終点と一番近い障害物セルとの距離がこの閾値よりも大きいとき，そのビームは地図とマッチしないと判断されます．
+  \item \textsf{beam\_skip\_threshold} \\
+    double型，default: 0.3 \\
+    ビームがスキップされる基準の閾値です．ビームスキップ処理では，あるビームに対して，ビームが地図とマッチしないパーティクルが十分存在するときビームがスキップされます．
+    全てのパーティクルに対し，ビームがマッチしないパーティクルが一定の割合以上のとき，ビームスキップが行われます．
+    その割合を決定するのがこのパラメータです．
+  \item \textsf{beam\_skip\_error\_threshold} \\
+    double型，default: 0.9 \\
+    あまりにも多くのビームがスキップされた場合，\textsf{amcl}は逆に全てのビームを処理するようになります．
+    スキップ対象のビームの数が，フィルタ更新に使用する全てのビームの数(\textsf{laser\_max\_beams}で指定した数)に対して一定割合以上になったときにビームスキップ処理を破棄します．
+    その割合を決定するのがこのパラメータです．
 \end{itemize}
 
 \subsubsection{オドメトリモデルに関するパラメータ}
 
-\subsection{\textsf{amcl}のアルゴリズム}
+\begin{itemize}
+  \item \textsf{odom\_model\_type} \\
+    string型，default: ``diff'' \\
+    オドメトリモデルで使用するロボットの移動機構の種別を指定します．
+    指定できるタイプは``diff''，``omni''，``diff-corrected''，``omni-corrected''の4つです．
+    ``corrected''が付いたモデルはバグ修正がされたもので，古いタイプは互換性のために残されています．
+    従って，新規で作る場合は修正されたモデルを使用するべきでしょう．
+    ただし，ROS Wikiに記述されているように，オドメトリモデルの各係数のデフォルト値は古いモデルにのみフィットする値であり，修正されたモデルではもっと小さい値を使うべきとされています．
+    パラメータチューニングを行う際は，ロボットを実際に走らせ，オドメトリの誤差がどれくらい生じるかをもとにして行わなければなりません．
+  \item \textsf{odom\_alpha1} \\
+    double型，default: 0.2 \\
+    ロボットの回転動作によって，オドメトリの回転成分にどれくらいのノイズが発生するかを指定します．
+  \item \textsf{odom\_alpha2} \\
+    double型，default: 0.2 \\
+    ロボットの直進動作によって，オドメトリの回転成分にどれくらいのノイズが発生するかを指定します．
+  \item \textsf{odom\_alpha3} \\
+    double型，default: 0.2 \\
+    ロボットの直進動作によって，オドメトリの直進成分にどれくらいのノイズが発生するかを指定します．
+  \item \textsf{odom\_alpha4} \\
+    double型，default: 0.2 \\
+    ロボットの回転動作によって，オドメトリの直進成分にどれくらいのノイズが発生するかを指定します．
+  \item \textsf{odom\_alpha5} \\
+    double型，default: 0.2 \\
+    ロボットの並進に関係するノイズパラメータです．``omni''モデルでのみ使用されます．
+  \item \textsf{odom\_frame\_id} \\
+    string型，default: ``odom'' \\
+    オドメトリ座標系のフレーム名を指定します．
+  \item \textsf{base\_frame\_id} \\
+    string型，default: ``base\_link'' \\
+    ロボットのベースリンクの名前を指定します．
+  \item \textsf{global\_frame\_id} \\
+    string型，default: ``map'' \\
+    地図座標系のフレーム名を指定します．
+\end{itemize}
 
-\subsection{パラメータチューニング}
+\subsection{KLDサンプリング}
+
+\subsection{Augmented MCL}
+
+\subsection{レーザースキャンのビームモデル}
+
+\subsection{レーザースキャンの尤度場モデル}
+
+\subsection{ビームスキップ処理}
+
+\subsection{パラメータ調整の勘所}
 
 \end{document}
