@@ -444,8 +444,54 @@ $z_{1-\delta}$は標準正規分布$\mathcal{N}(0, 1)$の分位数で，標準�
 \noindent
 と計算することができます．
 ROSの\textsf{amcl}でもこの変換が用いられています\footnote{\url{https://github.com/ros-planning/navigation/blob/7f22997e6804d9d7249b8a1d789bf27343b26f75/amcl/src/amcl/pf/pf.c\#L535-L540}}．
+ウィルソン-フィルファーティ変換により，「標準正規分布の分位数$z_{1-\delta}$」と「KL情報量の誤差$\varepsilon$」を決めれば，必要なパーティクル数$N$を決められる，というわけです．
+\textsf{amcl}のノードにおける\textsf{kld\_z}が標準正規分布の分位数，\textsf{kld\_err}がKL情報量の誤差に当たるので，これら2つのパラメータを設定することでKLDサンプリングの挙動をコントロールできるということになります．
+
+あと計算に必要なのはビン数$k$ですが，\textsf{amcl}ではKD-Treeを使ってビン数を決定しているようです．
+ビン数の計算に関しては筆者がまだ理解できていないので，ここで言及するのは控えます．
 
 \subsection{Augmented MCL}
+
+次に，MCLでロボットの誘拐問題に対処するためのAugmented MCLについて簡単に解説します．
+ロボットの誘拐問題とは，「今まで自己位置を推定できていたロボットが突然別の場所に連れ去られる」問題のことです．
+MCLでは今までロボットが持っていた信念分布を元に現在時刻の位置を推定するため，誘拐問題に対処するにはそれまでロボットが持っていた信念分布を一旦否定しなければなりません．
+
+これに対処するためには，観測によって得られた情報を元に信念分布をリセットすればよいことになります．
+その際，リセットをするかどうかを判断する指標として使うのが，周辺尤度$\alpha$です．
+周辺尤度$\alpha$は信念分布に対して観測がどれだけあり得ないかを数値化したもので，各パーティクルの重みの総和です．
+
+\begin{equation}
+  \alpha = \sum_{i=0}^{N-1} w^{(i)}
+\end{equation}
+
+ある時刻で得られた観測と信念分布が乖離したとき，$\alpha$の値は小さくなります．
+従って，ある閾値を設け，$\alpha$の値がそれを下回ったら信念分布をリセットすればよいということになります．
+
+しかし，単純に$\alpha$の値を監視するだけでは，思いがけないタイミングでリセットが発生してしまう可能性があります．
+センサに大きなノイズが混入したり，誤った観測が得られてしまったとき等にそれが起こりえます．
+
+これを防ぐためには，$\alpha$の値をある程度長い時間に渡って監視し，$\alpha$の値の変化を見てリセットすべきかを判断します．
+Augmented MCLでは，$\alpha_{\text{slow}}$と$\alpha_{\text{fast}}$の2つの値を計算します．
+この値は，センサ値が得られる度に，式\ref{eq:augmented_mcl_alpha_update}に従って更新します．
+
+\begin{equation}
+  \begin{split}
+    \alpha_{\text{slow}} &\leftarrow \alpha_{\text{slow}} + \alpha_{\text{th-slow}}(\alpha - \alpha_{\text{slow}}) \\
+    \alpha_{\text{fast}} &\leftarrow \alpha_{\text{fast}} + \alpha_{\text{th-fast}}(\alpha - \alpha_{\text{fast}}) \\
+  \end{split}
+  \label{eq:augmented_mcl_alpha_update}
+\end{equation}
+
+$\alpha_{\text{th-slow}}$と$\alpha_{\text{th-fast}}$はそれぞれ閾値で，$0 < \alpha_{\text{th-slow}} \ll \alpha_{\text{th-fast}} < 1$と設定します．
+このようにすると，周辺尤度$\alpha$の値が連続で小さくなっていったとき，$\alpha_{\text{fast}}$が先に小さくなっていき，遅れて$\alpha_{\text{slow}}$が0に近づいていきます．
+この$\alpha_{\text{slow}}$と$\alpha_{\text{fast}}$を用いて，現在$N$個あるパーティクルのうち，次の式で計算される$\tilde{N}$個のパーティクルだけリセット対象とします．
+
+\begin{equation}
+  \tilde{N} = N \cdot \max \left(0, 1 - \frac{\alpha_{\text{fast}}}{\alpha_{\text{slow}}}\right)
+\end{equation}
+
+$\alpha$が連続で小さくなったとき，$\frac{\alpha_{\text{fast}}}{\alpha_{\text{slow}}}$が次第に小さくなっていくので，$\tilde{N}$が大きくなっていきます．
+閾値$\alpha_{\text{th-fast}}$はだいたい0.1程度の大きさに，$\alpha_{\text{th-slow}}$は0.001程度にするのが一般的です．
 
 \subsection{レーザースキャンのビームモデル}
 
