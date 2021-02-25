@@ -24,25 +24,28 @@ roslaunch adamr2_bringup adamr2_bringup.launch
 次に自律走行のためのノード群を起動するためのlaunchファイルを実行します．
 \textsf{adamr2\_navigation}パッケージに置かれている\textsf{adamr2\_navigation.launch}を実行することで，Navigation Stackのノードを一括で実行することができます．
 
-\textsf{adamr2\_navigation.launch}は，実行時に2つの引数を取ります．
-\textsf{situation}と\textsf{map\_file}です．
+\textsf{adamr2\_navigation.launch}は，実行時に3つの引数を取ります．
+\textsf{situation}，\textsf{map\_file}，そして\textsf{environment}です．
 \textsf{situation}は実験時のシチュエーションを指定する引数で，SLAMのときと同様に\textsf{real}もしくは\textsf{sim}を指定します．
 \textsf{map\_file}は実験で使用する地図のパスを指定する引数です．
 パスの指定にはフルパスを入力する必要があります．
 いちいちフルパスを入れるのはさすがに面倒なので，対象の地図があるディレクトリに移動し，UNIXの\textsf{pwd}コマンドを活用すると良いでしょう．
+\textsf{environment}はロボットが動作する環境(屋内か屋外か)を指定します．
+屋内環境と屋外環境では，環境のスケールやセンサに混入するノイズ等のパラメータが変わってしまうので，\textsf{adamr2\_navigation}パッケージではそれぞれの環境に合わせたパラメータファイルを用意しています(\textsf{config/}ディレクトリ以下)．
+\textsf{environment}には\textsf{indoor}もしくは\textsf{outdoor}のどちらかを指定します．
 具体的には，\ref{code:launch_adamr2_navigation}のように実行します．
 
 \begin{lstlisting}[language=sh, label=code:launch_adamr2_navigation, caption=Launch \textsf{adamr2\_navigation.launch}]
 cd path/to/the/map/file
 roslaunch adamr2_navigation adamr2_navigation.launch \
-  situation:=real map_file:=`pwd`/map.yaml
+  situation:=real map_file:=`pwd`/map.yaml environment:=indoor
 \end{lstlisting}
 
 \textsf{path/to/the/map/file}には実際の地図があるディレクトリを指定してください．
-バッククォートでコマンドを囲むことで，コマンドの実行結果をその場所に展開することができます．
+Linuxコマンドラインでは，バッククォートでコマンドを囲むことでコマンドの実行結果をその場所に展開することができます．
 \textsf{pwd}コマンドはカレントディレクトリのパスを出力するコマンドなので\footnote{\emph{P}rint \emph{W}orking \emph{D}irectoryの略です．}，
 結果として地図へのフルパスを\textsf{map\_file}引数に指定できることになります．
-\textsf{adamr2\_navigation.launch}はこの2つの引数を指定してやらないと起動しないので注意してください．
+これら3つのパラメータにはデフォルト値を設定していません．つまり，\textsf{adamr2\_navigation.launch}はこの3つの引数を指定してやらないと起動しないので注意してください．
 
 \textsf{adamr2\_navigation.launch}を起動すると，Navigation Stackの各種ノードと\textsf{rviz}が起動します．
 あとは\textsf{rviz}上でナビゲーションの目的地を指定してやれば，自律走行が開始されます．
