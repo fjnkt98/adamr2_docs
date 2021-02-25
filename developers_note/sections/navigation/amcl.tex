@@ -495,7 +495,129 @@ $\alpha$が連続で小さくなったとき，$\frac{\alpha_{\text{fast}}}{\alp
 
 \subsection{レーザースキャンのビームモデル}
 
+\textsf{amcl}では節\ref{sec:likelihood_field_model}で紹介した尤度場モデルの他に，
+ビームモデル\cite{thrun2005probabilistic}，ビームスキップ処理を含んだ尤度場モデルの3つのモデルを使用することができます．
+どの観測モデルを使用するかは\textsf{laser\_model\_type}パラメータに与える文字列によって制御することができます．
+\textsf{beam}の場合はビームモデル，{likelihood\_field}は通常の尤度場モデル，\textsf{likelihood\_field\_prob}はビームスキップ処理を行う尤度場モデルです．
+
+ビームモデルは以下の4つのノイズをモデル化した確率分布を組み合わせたモデルです．
+
+\begin{enumerate}
+  \item 正しい計測を行ったときの局所的な計測誤差 \\
+  距離センサで測定したデータは，真の距離を平均とするガウス分布に従うノイズを常に含みます．
+  レーザーセンサによって得られた距離データを$z^{k}_{t}$，真の距離を$z^{k*}_{t}$，観測時のロボットの姿勢を$\bm{x}_{t}$，地図を$m$としたとき，このノイズを表すガウス分布$p_{\text{hit}}(z_{t} \mid \bm{x}_{t}, m)$は式\ref{eq:beam_model_phit}のように表されます．
+
+  \begin{equation}
+    p_{\text{hit}}(z_{t} \mid \bm{x}_{t}, m) = 
+    \begin{cases}
+      \eta_{\text{hit}} \mathcal{N}(z^{k}_{t}; z^{k*}_{t}, \sigma^{2}_{\text{hit}}) & (0 \leq z^{k}_{t} \leq z_{\text{max}}) \\
+      0 & \text{otherwise}
+    \end{cases}
+    \label{eq:beam_model_phit}
+  \end{equation}
+
+  ここで，真の距離$z^{K*}_{t}$はロボットの姿勢$\bm{x}_{t}$と地図$m$から，レイトレーシングによって求められます\footnote{ロボットの姿勢と地図が既知であれば，ロボットの位置から$z^{k}_{t}$の方向に沿って走査することで障害物セルを見つけることができます．その障害物セルとロボットとの距離が真の距離$z^{k*}_{t}$である，ということになります．}．
+  $\mathcal{N}(z^{k}_{t}; z^{k*}_{t}, \sigma^{2}_{\text{hit}})$は平均$z^{k*}_{t}$，標準偏差$\sigma_{\text{hit}}$のガウス分布で，以下の式で表されます．
+
+  \begin{equation}
+    \mathcal{N}(z^{k}_{t}; z^{k*}_{t}, \sigma^{2}_{\text{hit}}) = \frac{1}{\sqrt{2\pi\sigma^{2}_{\text{hit}}}} \exp{\left( -\frac{(z^{k}_{t} - z^{k*}_{t})^2}{2\sigma^2_{\text{hit}}} \right)}
+  \end{equation}
+
+  また，$\eta_{\text{hit}}$は正規化因子で，以下の式で表されます．
+
+  \begin{equation}
+    \eta_{\text{hit}} = \left( \int^{z_{\text{max}}}_{0} \mathcal{N}(z^{k}_{t}; z^{k*}_{t}, \sigma^{2}_{\text{hit}}) dz^{k}_{t} \right)^{-1}
+  \end{equation}
+
+  \item 想定外の物体による誤差 \\
+  ロボットが持っている地図$m$が静的な一方で，環境が動的であるとします．
+  このとき，地図に含まれていない物体(移動体．歩行者等)がセンサの前に立ちふさがったりすると，センサは本来の測定値よりも極端に短い値を返します．
+  
+  ビームモデルではこのような測定誤差もモデルに組み込みます．
+  具体的にはこれを指数分布としてモデル化します．
+  この指数分布を$p_{\text{short}}$とし，式\ref{eq:beam_model_pshort}で表します．
+
+  \begin{equation}
+    p_{\text{short}}(z^{k}_{t} \mid \bm{x}_{t}, m) =
+    \begin{cases}
+      \eta_{\text{short}}\lambda_{\text{short}}\exp{(-\lambda_{\text{short}}z^{k}_{t})} & (0 \leq z^{k}_{t} \leq z^{k*}_{t}) \\
+      0 & \text{otherwise}
+    \end{cases}
+    \label{eq:beam_model_pshort}
+  \end{equation}
+
+  $\eta_{\text{short}}$は正規化因子で，以下のようになります．
+
+  \begin{equation}
+    \eta_{\text{short}} = \left( \int^{z^{k*}_{t}}_{0} \lambda_{\text{short}}\exp{(-\lambda_{\text{short}}z^{k}_{t})} dz^{k}_{t} \right)^{-1}
+    = \frac{1}{1 - \exp{(\lambda_{\text{short}}z^{k*}_{t})}}
+  \end{equation}
+
+  \item 物体検知失敗による誤差 \\
+  距離センサが計測に失敗したとき，センサの種類によっては，センサの最大測定距離$z_{\text{max}}$を返すことによって計測失敗を示すことがあります．
+  このような計測の失敗をモデルに組み込む際は，一様分布を使って$p_{\text{max}}$として式\ref{eq:beam_model_pmax}のように表します．
+
+  \begin{equation}
+    p_{\text{max}}(z^{k}_{t} \mid \bm{x}_{t}, m) = I(z = z_{\text{max}}) =
+    \begin{cases}
+      1 & (z = z_{\text{max}}) \\
+      0 & \text{otherwise}
+    \end{cases}
+    \label{eq:beam_model_pmax}
+  \end{equation}
+
+  \item 原因不明なランダム誤差 \\
+  距離センサは時折，原因不明なでたらめな測定値を返すことがあります．
+  このような完全にランダムな誤差は，センサの測定可能範囲の全域に渡る一様分布で表現します．
+  これを$p_{\text{rand}}$として，式\ref{eq:beam_model_prand}のように表します．
+
+  \begin{equation}
+    p_{\text{rand}}(z^{k}_{t} \mid \bm{x}_{t}, m) =
+    \begin{cases}
+      \frac{1}{z_{\text{max}}} & (0 \leq z^{k}_{t} \leq z_{\text{max}}) \\
+      0 & \text{otherwise}
+    \end{cases}
+    \label{eq:beam_model_prand}
+  \end{equation}
+\end{enumerate}
+
+そして，これら4つの確率分布を線形結合したモデル$p(z^{k}_{t} \mid \bm{x}_{t}, m)$を確率モデルとします．
+
+\begin{equation}
+  p(z^{k}_{t} \mid \bm{x}_{t}, m) =
+  \begin{pmatrix}
+    z_{\text{hit}} \\
+    z_{\text{short}} \\
+    z_{\text{max}} \\
+    z_{\text{rand}}
+  \end{pmatrix}^T
+  \cdot
+  \begin{pmatrix}
+    p_{\text{hit}}(z^{k}_{t} \mid \bm{x}_{t}, m) \\
+    p_{\text{short}}(z^{k}_{t} \mid \bm{x}_{t}, m) \\
+    p_{\text{max}}(z^{k}_{t} \mid \bm{x}_{t}, m) \\
+    p_{\text{rand}}(z^{k}_{t} \mid \bm{x}_{t}, m)
+  \end{pmatrix}
+  \label{eq:beam_model_p}
+\end{equation}
+
+ここで，$z_{\text{hit}}$，$z_{\text{short}}$，$z_{\text{max}}$，$z_{\text{rand}}$はそれぞれの分布の重み係数です．
+
+これがビームモデルにおける，各ビームの観測モデルです．
+ビーム1本当たりの観測モデルは，$\sigma_{\text{hit}}$，$\lambda_{\text{short}}$，$z_{\text{hit}}$，$z_{\text{short}}$，$z_{\text{max}}$，$z_{\text{rand}}$の6つのパラメータでその振る舞いをコントロールすることができます．
+
+一回の観測の観測モデル$p(z_{t} \mid \bm{x}_{t}, m)$は，各ビームの測定ノイズがそれぞれ独立していると仮定する\footnote{任意のビームのノイズが，隣のレーザーによって引き起こされたものではないということです．}と，式\ref{eq:beam_model_integrated}のようになります．
+
+\begin{equation}
+  p(z_{t} \mid \bm{x}_{t}, m_{t-1}) = \prod_{j=0}^{K-1} p(z_{t}^{j} \mid \bm{x}_{t}, m_{t-1})
+  \label{eq:beam_model_integrated}
+\end{equation}
+
+$K$は1回のスキャン当たりのビームの数です．
+
 \subsection{レーザースキャンの尤度場モデル}
+
+尤度場モデルは節\ref{sec:likelihood_field_model}で説明したものとほぼ同じなので，ここでの説明は行いません．
 
 \subsection{ビームスキップ処理}
 
