@@ -621,6 +621,68 @@ $K$は1回のスキャン当たりのビームの数です．
 
 \subsection{ビームスキップ処理}
 
+\textsf{amcl}で使用できる観測モデルのうちの\textsf{likelihood\_field\_prob}はビームスキップ処理を行う尤度場モデルです．
+ビームスキップ処理とは，「地図とマッチしなかったビームを無視する(尤度計算に使用しない)こと」です．
+
+ビームスキップ処理の挙動について，ROS Answers\footnote{\url{https://answers.ros.org/question/251002/amcl-probabilistic-likelihood-field/}}で詳しく解説されていたので，ここではそれを紹介します．
+
+1回の観測(スキャン1周)に含まれるビームのうち，多くの数のパーティクルにおいてその終点が地図上の障害物とマッチしないとき，そのビームを無視し，尤度計算を行いません．
+これにより，地図上にない障害物(歩行者等)によって，正しい姿勢を推定しているはずのパーティクルの重みが不当に下げられてしまうことを防ぐことができます．
+ビームスキップ処理は，歩行者等が多く存在する動的な環境で有効に働きます．
+
+ビームスキップ処理は以下のような流れで行われます．
+
+\begin{enumerate}
+  \item まず，ビームスキップ処理はパーティクルフィルタが収束したときのみ実行されます．
+        パーティクルの平均の位置から\SI{0.5}{m}以内に全てのパーティクルが位置するとき，パーティクルフィルタは収束しているとみなされます．
+        \SI{0.5}{m}という値はハードコーディングされた値のようです\footnote{\url{https://github.com/ros-planning/navigation/blob/8c4933517b56a9ac8f193068df4d9ff333f21614/amcl/src/amcl/pf/pf.c\#L72}}．
+  \item あるビームに対して，ビームが地図と一致しないパーティクルが十分あるとき，そのビームはスキップ対象となります．
+        全てのパーティクルに対し，一致しないパーティクルが一定の割合以上のとき，スキップ処理が実行されます．
+        割合の閾値は\textsf{beam\_skip\_threshold}パラメータで設定され，デフォルトは0.3です．
+  \item ビームの終点と一番近い障害物セルとの距離が\textsf{beam\_skip\_distance}より大きいとき，そのビームは地図と一致しないと判断されます．
+  \item 1回のスキャンのうち，あまりにも多くのビームがスキップ判定された場合，\textsf{amcml}は逆に全てのビームを処理するように戻ります．
+        その基準は，スキップ対象と判断されたビームの数が\textsf{laser\_max\_beams}$\times$\textsf{beam\_skip\_error\_threshold}よりも多くなったときです．
+        \textsf{beam\_skip\_error\_threshold}パラメータのデフォルト値は0.9なので，1回のスキャンのうち位置推定に使用するビームの数の9割がスキップ対象と判断されたとき，スキップ処理自体をキャンセルするようになるということです．
+\end{enumerate}
+
+尚，\textsf{do\_beamskip}パラメータをFalseに設定した場合，\textsf{likelihood\_field\_prob}は\textsf{likelihood\_field}と同一になります．
+
 \subsection{パラメータ調整の勘所}
 
-\end{document} 
+オドメトリモデルや観測モデルの各種パラメータについては，実機のロボットのデータを取って設定する必要があります．
+例えば，LiDARを使用する場合には，あるビームの観測結果がどれくらいばらつくかを実験を通して計算し，それを元にパラメータを決定します．
+
+また，\textsf{amcl}を使って推定した位置を元に自律走行を行う際は，\textsf{amcl}のフィルタアップデート周期についても注意を払わなければならない場合があります．
+\textsf{amcl}は計算量をむやみに増やさないために，ロボットが一定以上動いた際にのみフィルタアップデートを行います．
+その閾値は\textsf{update\_min\_d}および\textsf{update\_min\_a}パラメータで制御されます．
+推定位置の情報の更新をできるだけ早めたい場合には，これらのパラメータを適切に小さく設定する必要があります．
+
+\textsf{amcl}が推定位置情報をTFとして配信する周期は，レーザースキャンデータの配信周期に依存します．
+これは，\textsf{amcl}ノードがレーザースキャンメッセージのコールバック関数の中でTFの配信処理を行っていることによります．
+これにより，早い周期で\textsf{map}$\rightarrow$\textsf{odom}のTF変換を要求するアプリケーションを併用する際に問題が起こることがあります．
+こちらのスライド\footnote{\url{https://www.slideshare.net/kojiterada5/tftf2}}で説明されているのですが，ROSのTFは，離散的に配信されたTFのデータを使って内挿処理を行うことはできますが，外挿処理を行うことはできません．
+つまり，\textsf{map}$\rightarrow$\textsf{odom}またはその逆のTF変換を要求するノードがあったとして，そのアプリケーションがTF変換を要求する周期が\textsf{amcl}のTF配信周期を上回ったとき，エラーが発生してしまうということになります．
+実際，\textsf{move\_base}を使って自律移動を行うとき，特にパラメータチューニングを行わないと以下のようなエラーメッセージが出力される場合があります．
+
+\begin{lstlisting}[caption=TF Error Message]
+Extrapolation Error: Lookup would require extrapolation into the future.  Requested time ?.? but the latest data is at time ?.?, when looking up transform from frame [odom] to frame [map]
+
+Could not transform the global plan to the frame of the controlle
+\end{lstlisting}
+
+エラーメッセージに出力されているように，あるノードがまだ\textsf{amcl}が配信していない時刻の\textsf{odom}$\rightarrow$\textsf{map}の変換を要求してしまったことが原因です．
+このエラーを解消するには，あるノードがTF変換を要求する周期よりも早く\textsf{amcl}によるTF配信を行わなければなりません．
+しかし，\textsf{amcl}によるTF配信はレーザースキャンの配信周期に依存しているため，周期を早めるにはセンサ側に手を入れる必要が出てきます．
+これはあまり有効な策ではありません．
+
+そこで，\textsf{amcl}では\textsf{transform\_tolerance}パラメータが用意されています．
+\textsf{amcl}では，配信するTFの時刻(タイムスタンプ)を，\textsf{transform\_tolerance}秒だけ未来に設定する処理が行われています\footnote{\url{https://github.com/ros-planning/navigation/blob/8c4933517b56a9ac8f193068df4d9ff333f21614/amcl/src/amcl_node.cpp\#L1465-L1466}}．
+TFは外挿処理を行えませんが，内挿処理を行うことは可能です．従って，少し未来の時刻にTFを配信することにより，外挿エラーを防ごうという考えのようです．
+\textsf{transform\_tolerance}パラメータはデフォルトでは0.1に設定しているため，\textsf{amcl}によって配信されるTFのタイムスタンプは0.1秒だけ未来になっています．
+デフォルトの設定値でもエラーが発生せずに動く場合もありますが，上手く行かない場合もあります．その際はこのパラメータを少し大きく(0.3秒とかに)することで解決する場合があります．
+
+ただし当然ですが，タイムスタンプを未来にするということは，推定した位置と実際の時刻における位置が乖離する恐れがあるということです．
+\textsf{transform\_tolerance}が小さい値なら問題はないのですが，例えば1.0秒に設定したときはかなりズレることになります．
+あまりに大きい値を設定すると問題が発生する可能性があるので，その点には注意しておく必要があります．
+
+\end{document}
